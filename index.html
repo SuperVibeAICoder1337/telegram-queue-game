@@ -152,8 +152,134 @@
             pipeWidth: 80,
             pipeInterval: 1800,
             itemSpawnChance: 0.4,
-            easterEggClicks: 10,
-            easterEggTimeout: 2000
+            easterEggClicks: 5,  // Уменьшили для более легкой активации
+            easterEggTimeout: 2000,
+            autopilotCooldown: 1000  // Защита от случайного отключения
+        };
+
+        // === СИСТЕМА ЗВУКОВ И ВИБРАЦИИ ===
+        const soundSystem = {
+            audioContext: null,
+            sounds: {},
+            enabled: true,
+            
+            init() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.createSounds();
+                } catch (e) {
+                    console.log('Audio not supported:', e);
+                    this.enabled = false;
+                }
+            },
+            
+            createSounds() {
+                // Звук прыжка
+                this.sounds.jump = () => {
+                    if (!this.enabled) return;
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.frequency.value = 600;
+                    oscillator.type = 'sine';
+                    gainNode.gain.value = 0.2;
+                    
+                    oscillator.start();
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
+                    oscillator.stop(this.audioContext.currentTime + 0.2);
+                };
+                
+                // Звук столкновения
+                this.sounds.crash = () => {
+                    if (!this.enabled) return;
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.frequency.value = 200;
+                    oscillator.type = 'sawtooth';
+                    gainNode.gain.value = 0.3;
+                    
+                    oscillator.start();
+                    oscillator.frequency.exponentialRampToValueAtTime(100, this.audioContext.currentTime + 0.5);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+                    oscillator.stop(this.audioContext.currentTime + 0.5);
+                };
+                
+                // Звук сбора зерна
+                this.sounds.collect = () => {
+                    if (!this.enabled) return;
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'triangle';
+                    gainNode.gain.value = 0.2;
+                    
+                    oscillator.start();
+                    oscillator.frequency.exponentialRampToValueAtTime(1200, this.audioContext.currentTime + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+                    oscillator.stop(this.audioContext.currentTime + 0.1);
+                };
+                
+                // Звук прохождения препятствия
+                this.sounds.pass = () => {
+                    if (!this.enabled) return;
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.frequency.value = 400;
+                    oscillator.type = 'sine';
+                    gainNode.gain.value = 0.15;
+                    
+                    oscillator.start();
+                    oscillator.frequency.exponentialRampToValueAtTime(600, this.audioContext.currentTime + 0.15);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.15);
+                    oscillator.stop(this.audioContext.currentTime + 0.15);
+                };
+                
+                // Звук активации автопилота
+                this.sounds.autopilot = () => {
+                    if (!this.enabled) return;
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.frequency.value = 300;
+                    oscillator.type = 'square';
+                    gainNode.gain.value = 0.2;
+                    
+                    oscillator.start();
+                    oscillator.frequency.linearRampToValueAtTime(800, this.audioContext.currentTime + 0.3);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                    oscillator.stop(this.audioContext.currentTime + 0.3);
+                };
+            },
+            
+            play(soundName) {
+                if (this.sounds[soundName]) {
+                    this.sounds[soundName]();
+                }
+            },
+            
+            vibrate(pattern) {
+                // Вибрация для мобильных устройств
+                if (navigator.vibrate && this.enabled) {
+                    try {
+                        navigator.vibrate(pattern);
+                    } catch (e) {
+                        // Игнорируем ошибки вибрации
+                    }
+                }
+            }
         };
 
         // === ЭЛЕМЕНТЫ DOM ===
@@ -169,7 +295,7 @@
         // === ПЕРЕМЕННЫЕ ПАСХАЛКИ ===
         let clickHistory = [];
         let autopilotActive = false;
-        let perfectMode = false;
+        let lastAutopilotActivation = 0;
 
         // === АДАПТИВНЫЙ РАЗМЕР ===
         function resizeCanvas() {
@@ -242,7 +368,7 @@
             }
         }
 
-        // === ПАСХАЛКА: СОВЕРШЕННЫЙ АВТОПИЛОТ ===
+        // === УПРОЩЕННЫЙ АВТОПИЛОТ ===
         function checkEasterEgg() {
             if (!gameActive) return;
             
@@ -255,16 +381,40 @@
             );
             
             // Активируем автопилот при достаточном количестве кликов
-            if (clickHistory.length >= config.easterEggClicks) {
-                autopilotActive = !autopilotActive;
-                perfectMode = autopilotActive; // Включаем совершенный режим
-                clickHistory = [];
-                showAutopilotMessage(autopilotActive);
+            if (clickHistory.length >= config.easterEggClicks && !autopilotActive) {
+                activateAutopilot();
             }
         }
 
-        function perfectAutopilotControl() {
-            if (!autopilotActive || !perfectMode) return;
+        function activateAutopilot() {
+            autopilotActive = true;
+            lastAutopilotActivation = Date.now();
+            clickHistory = [];
+            
+            // Звук и вибрация для активации автопилота
+            soundSystem.play('autopilot');
+            soundSystem.vibrate([100, 50, 100]);
+            
+            showAutopilotMessage(true);
+        }
+
+        function deactivateAutopilot() {
+            // Защита от случайного отключения сразу после активации
+            if (Date.now() - lastAutopilotActivation < config.autopilotCooldown) {
+                return;
+            }
+            
+            autopilotActive = false;
+            
+            // Звук и вибрация для деактивации автопилота
+            soundSystem.play('autopilot');
+            soundSystem.vibrate([50, 50]);
+            
+            showAutopilotMessage(false);
+        }
+
+        function simpleAutopilotControl() {
+            if (!autopilotActive) return;
             
             // Находим следующую пару труб
             const nextPipe = pipes.find(pipe => 
@@ -273,29 +423,20 @@
             
             if (!nextPipe) return;
             
+            // Вычисляем центр промежутка между трубами
             const gapCenter = nextPipe.y + nextPipe.height + config.pipeGap / 2;
             const birdCenter = bird.y + bird.height / 2;
-            const distanceToPipe = nextPipe.x - bird.x;
             
-            // Рассчитываем идеальную траекторию
-            const timeToPipe = distanceToPipe / config.pipeSpeed;
-            const predictedBirdY = bird.y + bird.velocity * timeToPipe + 0.5 * config.gravity * timeToPipe * timeToPipe;
+            // Простая логика: плавно двигаемся к центру промежутка
             const targetY = gapCenter - bird.height / 2;
+            const diff = targetY - bird.y;
             
-            // Совершенная логика прыжка
-            if (distanceToPipe < 150 && distanceToPipe > 50) {
-                // Если птица слишком низко и нужно успеть подняться
-                if (predictedBirdY > targetY + 30 && bird.jumpCooldown === 0) {
-                    bird.velocity = config.jumpForce;
-                    bird.jumpCooldown = 10;
-                }
-                // Если птица слишком высоко - позволяем падать (не прыгаем)
-            }
-            
-            // Дополнительная страховка от столкновений
-            if (birdCenter > gapCenter + 40 && bird.jumpCooldown === 0) {
-                bird.velocity = config.jumpForce * 0.8; // Меньший прыжок для тонкой корректировки
-                bird.jumpCooldown = 8;
+            // Плавное движение к цели
+            if (Math.abs(diff) > 5) {
+                bird.velocity += diff * 0.02;
+                // Ограничиваем максимальную скорость автопилота
+                bird.velocity = Math.max(bird.velocity, -8);
+                bird.velocity = Math.min(bird.velocity, 8);
             }
         }
 
@@ -317,7 +458,7 @@
                 text-align: center;
             `;
             message.innerHTML = active ? 
-                '🤖 СОВЕРШЕННЫЙ АВТОПИЛОТ<br>АКТИВИРОВАН!' : 
+                '🤖 АВТОПИЛОТ АКТИВИРОВАН<br><small>Тапните для отключения</small>' : 
                 '👨‍✈️ РУЧНОЕ УПРАВЛЕНИЕ';
             
             document.getElementById('game-container').appendChild(message);
@@ -435,7 +576,7 @@
             ctx.restore();
         }
 
-       // === ОТРИСОВКА КОЛОСКОВ ===
+        // === ОТРИСОВКА КОЛОСКОВ ===
         function drawPipes() {
             pipes.forEach(pipe => {
                 // Основной фон колоска
@@ -594,6 +735,10 @@
                         passedPairs.add(pipe.id);
                         score += 1;
                         scoreElement.textContent = score;
+                        
+                        // Звук и вибрация при прохождении препятствия
+                        soundSystem.play('pass');
+                        soundSystem.vibrate(30);
                     }
                 }
                 
@@ -614,8 +759,17 @@
                     item.collected = true;
                     score += 1;
                     scoreElement.textContent = score;
+                    
+                    // Звук и вибрация при сборе зерна
+                    soundSystem.play('collect');
+                    soundSystem.vibrate(50);
                 }
             });
+            
+            // Управление автопилотом
+            if (autopilotActive) {
+                simpleAutopilotControl();
+            }
         }
 
         // === ПРОВЕРКА СТОЛКНОВЕНИЙ ===
@@ -638,11 +792,6 @@
             drawItems();
             drawBird();
             
-            // Совершенный автопилот
-            if (autopilotActive && perfectMode) {
-                perfectAutopilotControl();
-            }
-            
             requestAnimationFrame(gameLoop);
         }
 
@@ -658,10 +807,15 @@
             scoreElement.textContent = score;
             gameActive = true;
             autopilotActive = false;
-            perfectMode = false;
             clickHistory = [];
             startScreen.style.display = 'none';
             gameOverScreen.style.display = 'none';
+            
+            // Инициализация звуковой системы при первом запуске
+            if (!soundSystem.audioContext) {
+                soundSystem.init();
+            }
+            
             gameLoop();
         }
 
@@ -669,9 +823,12 @@
         function gameOver() {
             gameActive = false;
             autopilotActive = false;
-            perfectMode = false;
             finalScoreElement.textContent = score;
             gameOverScreen.style.display = 'flex';
+            
+            // Звук и вибрация при завершении игры
+            soundSystem.play('crash');
+            soundSystem.vibrate([100, 50, 100, 50, 100]);
         }
 
         // === ОБРАБОТЧИКИ СОБЫТИЙ ===
@@ -682,12 +839,22 @@
             if (gameActive && bird.jumpCooldown === 0) {
                 bird.velocity = config.jumpForce;
                 bird.jumpCooldown = 10;
+                
+                // Звук и вибрация при прыжке
+                soundSystem.play('jump');
+                soundSystem.vibrate(40);
             }
         }
 
         function handleInteraction() {
-            handleJump();
-            checkEasterEgg();
+            if (autopilotActive) {
+                // Если автопилот активен, тап отключает его
+                deactivateAutopilot();
+            } else {
+                // Обычное управление
+                handleJump();
+                checkEasterEgg();
+            }
         }
 
         canvas.addEventListener('click', handleInteraction);
@@ -709,9 +876,12 @@
             resizeCanvas();
             initBird();
             initClouds();
+            
+            // Предварительная инициализация звуковой системы
+            soundSystem.init();
         });
 
-        console.log('🐔 Птичка-Очередняра готова к работе! Совершенный автопилот активируется 10 быстрыми кликами.');
+        console.log('🐔 Птичка-Очередняра готова к работе! Автопилот активируется 5 быстрыми кликами.');
     </script>
 </body>
 </html>
