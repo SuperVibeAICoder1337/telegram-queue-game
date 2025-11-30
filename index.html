@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Flappy Bird Game</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird</title>
     <style>
         body {
             margin: 0;
@@ -10,15 +12,16 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background: linear-gradient(to bottom, #87CEEB, #1E90FF);
+            background: #000;
             font-family: Arial, sans-serif;
+            overflow: hidden;
         }
         #game-container {
             position: relative;
         }
         canvas {
+            display: block;
             border: 2px solid #333;
-            background: #87CEEB;
         }
         #score {
             position: absolute;
@@ -27,6 +30,30 @@
             font-size: 24px;
             color: white;
             font-weight: bold;
+            z-index: 10;
+        }
+        #start-screen, #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            z-index: 20;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        .hidden {
+            display: none;
         }
     </style>
 </head>
@@ -34,28 +61,189 @@
     <div id="game-container">
         <canvas id="gameCanvas" width="320" height="480"></canvas>
         <div id="score">0</div>
+        <div id="start-screen">
+            <h1>Flappy Bird</h1>
+            <button id="start-button">Начать игру</button>
+        </div>
+        <div id="game-over-screen" class="hidden">
+            <h1>Игра окончена!</h1>
+            <p>Твой счет: <span id="final-score">0</span></p>
+            <button id="restart-button">Играть снова</button>
+        </div>
     </div>
 
     <script>
-        // Здесь будет код игры
+        // Получаем элементы
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
-        
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreElement = document.getElementById('final-score');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+
+        // Настройки игры
+        const gravity = 0.5;
+        const jump = -10;
+        const pipeSpeed = 2;
+        const pipeGap = 150;
+        const pipeWidth = 50;
+        const pipeInterval = 1500; // milliseconds
+
+        // Переменные игры
         let score = 0;
-        
-        // Пока просто показываем начальный экран
-        ctx.fillStyle = '#333';
-        ctx.font = '20px Arial';
-        ctx.fillText('Flappy Bird Game', 80, 200);
-        ctx.font = '14px Arial';
-        ctx.fillText('Нажми для начала игры', 90, 230);
-        
-        canvas.addEventListener('click', function() {
-            alert('Игра скоро будет здесь! 🎮');
-            score++;
+        let gameActive = false;
+        let frames = 0;
+        let bird = {};
+        let pipes = [];
+
+        // Инициализация птицы
+        function initBird() {
+            bird = {
+                x: 50,
+                y: canvas.height / 2,
+                width: 30,
+                height: 30,
+                velocity: 0
+            };
+        }
+
+        // Создание новой трубы
+        function createPipe() {
+            const minHeight = 50;
+            const maxHeight = canvas.height - pipeGap - minHeight;
+            const height = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+
+            pipes.push({
+                x: canvas.width,
+                y: 0,
+                width: pipeWidth,
+                height: height,
+                passed: false
+            }, {
+                x: canvas.width,
+                y: height + pipeGap,
+                width: pipeWidth,
+                height: canvas.height - height - pipeGap,
+                passed: false
+            });
+        }
+
+        // Отрисовка птицы
+        function drawBird() {
+            ctx.fillStyle = '#FFD700'; // Желтый цвет для птицы
+            ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+        }
+
+        // Отрисовка труб
+        function drawPipes() {
+            ctx.fillStyle = '#00FF00'; // Зеленый цвет для труб
+            pipes.forEach(pipe => {
+                ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
+            });
+        }
+
+        // Обновление позиции птицы
+        function updateBird() {
+            bird.velocity += gravity;
+            bird.y += bird.velocity;
+
+            // Проверка столкновения с землей и потолком
+            if (bird.y + bird.height >= canvas.height || bird.y <= 0) {
+                gameOver();
+            }
+        }
+
+        // Обновление позиции труб
+        function updatePipes() {
+            // Удаляем трубы, которые ушли за экран
+            pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
+
+            // Двигаем трубы
+            pipes.forEach(pipe => {
+                pipe.x -= pipeSpeed;
+
+                // Проверяем, прошла ли птица трубу
+                if (!pipe.passed && pipe.x + pipe.width < bird.x) {
+                    pipe.passed = true;
+                    score++;
+                    scoreElement.textContent = score;
+                }
+
+                // Проверка столкновения с трубой
+                if (
+                    bird.x < pipe.x + pipe.width &&
+                    bird.x + bird.width > pipe.x &&
+                    bird.y < pipe.y + pipe.height &&
+                    bird.y + bird.height > pipe.y
+                ) {
+                    gameOver();
+                }
+            });
+        }
+
+        // Игровой цикл
+        function gameLoop() {
+            if (!gameActive) return;
+
+            // Очистка canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Обновление и отрисовка
+            updateBird();
+            updatePipes();
+            drawPipes();
+            drawBird();
+
+            // Создание новой трубы через интервал
+            if (frames % (pipeInterval / 16.67) === 0) { // 60 FPS, поэтому 1500ms / 16.67ms ~ 90 кадров
+                createPipe();
+            }
+
+            frames++;
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Начало игры
+        function startGame() {
+            initBird();
+            pipes = [];
+            score = 0;
+            frames = 0;
             scoreElement.textContent = score;
+            gameActive = true;
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            gameLoop();
+        }
+
+        // Конец игры
+        function gameOver() {
+            gameActive = false;
+            finalScoreElement.textContent = score;
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        // Обработчики событий
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+
+        // Прыжок при клике или нажатии на пробел
+        canvas.addEventListener('click', function() {
+            if (gameActive) {
+                bird.velocity = jump;
+            }
         });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && gameActive) {
+                bird.velocity = jump;
+            }
+        });
+
+        // Инициализация при загрузке
+        initBird();
     </script>
 </body>
 </html>
