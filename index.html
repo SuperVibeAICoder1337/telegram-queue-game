@@ -151,7 +151,9 @@
             pipeGap: 200,
             pipeWidth: 80,
             pipeInterval: 1800,
-            itemSpawnChance: 0.4
+            itemSpawnChance: 0.4,
+            easterEggClicks: 10,
+            easterEggTimeout: 2000
         };
 
         // === ЭЛЕМЕНТЫ DOM ===
@@ -163,6 +165,10 @@
         const finalScoreElement = document.getElementById('final-score');
         const startButton = document.getElementById('start-button');
         const restartButton = document.getElementById('restart-button');
+
+        // === ПЕРЕМЕННЫЕ ПАСХАЛКИ ===
+        let clickHistory = [];
+        let autopilotActive = false;
 
         // === АДАПТИВНЫЙ РАЗМЕР ===
         function resizeCanvas() {
@@ -233,6 +239,73 @@
                     speed: 0.1 + Math.random() * 0.2
                 });
             }
+        }
+
+        // === ПАСХАЛКА: АВТОПИЛОТ ===
+        function checkEasterEgg() {
+            if (!gameActive) return;
+            
+            const now = Date.now();
+            clickHistory.push(now);
+            
+            // Удаляем старые клики
+            clickHistory = clickHistory.filter(time => 
+                now - time < config.easterEggTimeout
+            );
+            
+            // Активируем автопилот при достаточном количестве кликов
+            if (clickHistory.length >= config.easterEggClicks) {
+                autopilotActive = !autopilotActive;
+                clickHistory = [];
+                showAutopilotMessage(autopilotActive);
+            }
+        }
+
+        function autopilotControl() {
+            if (!autopilotActive) return;
+            
+            // Находим ближайшую трубу
+            const nextPipe = pipes.find(pipe => 
+                pipe.x + pipe.width > bird.x && !pipe.passed && pipe.isTop
+            );
+            
+            if (nextPipe) {
+                const gapCenter = nextPipe.y + nextPipe.height + config.pipeGap / 2;
+                const birdCenter = bird.y + bird.height / 2;
+                
+                // Прыгаем если птица ниже центра промежутка
+                if (birdCenter > gapCenter - 20 && bird.jumpCooldown === 0) {
+                    bird.velocity = config.jumpForce;
+                    bird.jumpCooldown = 10;
+                }
+            }
+        }
+
+        function showAutopilotMessage(active) {
+            const message = document.createElement('div');
+            message.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0,0,0,0.8);
+                color: #FFD200;
+                padding: 20px 40px;
+                border-radius: 15px;
+                font-size: 24px;
+                font-weight: bold;
+                z-index: 100;
+                border: 3px solid #FFD200;
+            `;
+            message.textContent = active ? '🤖 АВТОПИЛОТ ВКЛЮЧЕН!' : '👨‍✈️ РУЧНОЕ УПРАВЛЕНИЕ';
+            
+            document.getElementById('game-container').appendChild(message);
+            
+            setTimeout(() => {
+                if (message.parentNode) {
+                    message.remove();
+                }
+            }, 2000);
         }
 
         // === СОЗДАНИЕ КОЛОСКОВ ===
@@ -544,6 +617,11 @@
             drawItems();
             drawBird();
             
+            // Автопилот
+            if (autopilotActive) {
+                autopilotControl();
+            }
+            
             requestAnimationFrame(gameLoop);
         }
 
@@ -558,6 +636,8 @@
             lastPipeTime = Date.now();
             scoreElement.textContent = score;
             gameActive = true;
+            autopilotActive = false;
+            clickHistory = [];
             startScreen.style.display = 'none';
             gameOverScreen.style.display = 'none';
             gameLoop();
@@ -566,6 +646,7 @@
         // === КОНЕЦ ИГРЫ ===
         function gameOver() {
             gameActive = false;
+            autopilotActive = false;
             finalScoreElement.textContent = score;
             gameOverScreen.style.display = 'flex';
         }
@@ -581,15 +662,20 @@
             }
         }
 
-        canvas.addEventListener('click', handleJump);
+        function handleInteraction() {
+            handleJump();
+            checkEasterEgg();
+        }
+
+        canvas.addEventListener('click', handleInteraction);
         canvas.addEventListener('touchstart', function(e) {
             e.preventDefault();
-            handleJump();
+            handleInteraction();
         });
 
         document.addEventListener('keydown', function(e) {
             if ((e.code === 'Space' || e.code === 'ArrowUp') && gameActive) {
-                handleJump();
+                handleInteraction();
                 e.preventDefault();
             }
         });
@@ -602,7 +688,7 @@
             initClouds();
         });
 
-        console.log('🐔 Птичка-Очередняра готова к работе!');
+        console.log('🐔 Птичка-Очередняра готова к работе! Автопилот активируется 10 быстрыми кликами.');
     </script>
 </body>
 </html>
