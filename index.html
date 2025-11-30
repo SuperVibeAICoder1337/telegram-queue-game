@@ -169,6 +169,7 @@
         // === ПЕРЕМЕННЫЕ ПАСХАЛКИ ===
         let clickHistory = [];
         let autopilotActive = false;
+        let perfectMode = false;
 
         // === АДАПТИВНЫЙ РАЗМЕР ===
         function resizeCanvas() {
@@ -241,7 +242,7 @@
             }
         }
 
-        // === ПАСХАЛКА: АВТОПИЛОТ ===
+        // === ПАСХАЛКА: СОВЕРШЕННЫЙ АВТОПИЛОТ ===
         function checkEasterEgg() {
             if (!gameActive) return;
             
@@ -256,28 +257,45 @@
             // Активируем автопилот при достаточном количестве кликов
             if (clickHistory.length >= config.easterEggClicks) {
                 autopilotActive = !autopilotActive;
+                perfectMode = autopilotActive; // Включаем совершенный режим
                 clickHistory = [];
                 showAutopilotMessage(autopilotActive);
             }
         }
 
-        function autopilotControl() {
-            if (!autopilotActive) return;
+        function perfectAutopilotControl() {
+            if (!autopilotActive || !perfectMode) return;
             
-            // Находим ближайшую трубу
+            // Находим следующую пару труб
             const nextPipe = pipes.find(pipe => 
                 pipe.x + pipe.width > bird.x && !pipe.passed && pipe.isTop
             );
             
-            if (nextPipe) {
-                const gapCenter = nextPipe.y + nextPipe.height + config.pipeGap / 2;
-                const birdCenter = bird.y + bird.height / 2;
-                
-                // Прыгаем если птица ниже центра промежутка
-                if (birdCenter > gapCenter - 20 && bird.jumpCooldown === 0) {
+            if (!nextPipe) return;
+            
+            const gapCenter = nextPipe.y + nextPipe.height + config.pipeGap / 2;
+            const birdCenter = bird.y + bird.height / 2;
+            const distanceToPipe = nextPipe.x - bird.x;
+            
+            // Рассчитываем идеальную траекторию
+            const timeToPipe = distanceToPipe / config.pipeSpeed;
+            const predictedBirdY = bird.y + bird.velocity * timeToPipe + 0.5 * config.gravity * timeToPipe * timeToPipe;
+            const targetY = gapCenter - bird.height / 2;
+            
+            // Совершенная логика прыжка
+            if (distanceToPipe < 150 && distanceToPipe > 50) {
+                // Если птица слишком низко и нужно успеть подняться
+                if (predictedBirdY > targetY + 30 && bird.jumpCooldown === 0) {
                     bird.velocity = config.jumpForce;
                     bird.jumpCooldown = 10;
                 }
+                // Если птица слишком высоко - позволяем падать (не прыгаем)
+            }
+            
+            // Дополнительная страховка от столкновений
+            if (birdCenter > gapCenter + 40 && bird.jumpCooldown === 0) {
+                bird.velocity = config.jumpForce * 0.8; // Меньший прыжок для тонкой корректировки
+                bird.jumpCooldown = 8;
             }
         }
 
@@ -296,8 +314,11 @@
                 font-weight: bold;
                 z-index: 100;
                 border: 3px solid #FFD200;
+                text-align: center;
             `;
-            message.textContent = active ? '🤖 АВТОПИЛОТ ВКЛЮЧЕН!' : '👨‍✈️ РУЧНОЕ УПРАВЛЕНИЕ';
+            message.innerHTML = active ? 
+                '🤖 СОВЕРШЕННЫЙ АВТОПИЛОТ<br>АКТИВИРОВАН!' : 
+                '👨‍✈️ РУЧНОЕ УПРАВЛЕНИЕ';
             
             document.getElementById('game-container').appendChild(message);
             
@@ -617,9 +638,9 @@
             drawItems();
             drawBird();
             
-            // Автопилот
-            if (autopilotActive) {
-                autopilotControl();
+            // Совершенный автопилот
+            if (autopilotActive && perfectMode) {
+                perfectAutopilotControl();
             }
             
             requestAnimationFrame(gameLoop);
@@ -637,6 +658,7 @@
             scoreElement.textContent = score;
             gameActive = true;
             autopilotActive = false;
+            perfectMode = false;
             clickHistory = [];
             startScreen.style.display = 'none';
             gameOverScreen.style.display = 'none';
@@ -647,6 +669,7 @@
         function gameOver() {
             gameActive = false;
             autopilotActive = false;
+            perfectMode = false;
             finalScoreElement.textContent = score;
             gameOverScreen.style.display = 'flex';
         }
@@ -688,7 +711,7 @@
             initClouds();
         });
 
-        console.log('🐔 Птичка-Очередняра готова к работе! Автопилот активируется 10 быстрыми кликами.');
+        console.log('🐔 Птичка-Очередняра готова к работе! Совершенный автопилот активируется 10 быстрыми кликами.');
     </script>
 </body>
 </html>
