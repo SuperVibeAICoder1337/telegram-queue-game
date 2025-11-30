@@ -151,9 +151,7 @@
             pipeGap: 200,
             pipeWidth: 80,
             pipeInterval: 1800,
-            modeChangeInterval: 15000,
-            itemSpawnChance: 0.4,
-            maxObjects: 20 // Лимит объектов для оптимизации
+            itemSpawnChance: 0.4
         };
 
         // === ЭЛЕМЕНТЫ DOM ===
@@ -198,13 +196,7 @@
         let pipes = [];
         let items = [];
         let lastPipeTime = 0;
-        let lastModeChange = 0;
-        let currentMode = '';
         let clouds = [];
-        let lastFrameTime = 0;
-        let fps = 0;
-        let frameCount = 0;
-        let lastFpsUpdate = 0;
 
         // === ЦВЕТА РСХБ ===
         const colors = {
@@ -225,35 +217,12 @@
                 height: canvas.width * 0.08 * 0.8,
                 velocity: 0,
                 rotation: 0,
-                jumpCooldown: 0,
-                wingFlap: 0
+                jumpCooldown: 0
             };
         }
 
-        // === ОПТИМИЗИРОВАННАЯ ИНИЦИАЛИЗАЦИЯ ОБЛАКОВ ===
-        function initClouds() {
-            clouds = [];
-            for (let i = 0; i < 3; i++) { // Уменьшил количество облаков
-                clouds.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height * 0.4,
-                    size: 30 + Math.random() * 30,
-                    speed: 0.1 + Math.random() * 0.2 // Замедлил облака
-                });
-            }
-        }
-
-        // === СЛУЧАЙНЫЙ РЕЖИМ ПРИ СТАРТЕ ===
-        function getRandomMode() {
-            const modes = ['harvest', 'race', 'layers'];
-            return modes[Math.floor(Math.random() * modes.length)];
-        }
-
-        // === РЕЖИМ 1: УБОРКА УРОЖАЯ ===
-        function createHarvestPipe() {
-            // Оптимизация: проверяем лимит объектов
-            if (pipes.length >= config.maxObjects) return;
-            
+        // === СОЗДАНИЕ КОЛОСКОВ ===
+        function createPipe() {
             const minHeight = canvas.height * 0.15;
             const maxHeight = canvas.height - config.pipeGap - minHeight;
             const height = Math.random() * (maxHeight - minHeight) + minHeight;
@@ -280,9 +249,9 @@
                 isTop: false
             });
 
-            // Зерна для сбора (только если не превышен лимит)
-            if (Math.random() < config.itemSpawnChance && items.length < config.maxObjects / 2) {
-                for (let i = 0; i < 2; i++) { // Уменьшил количество зерен
+            // Зерна для сбора
+            if (Math.random() < config.itemSpawnChance) {
+                for (let i = 0; i < 3; i++) {
                     items.push({
                         type: 'grain',
                         x: canvas.width + Math.random() * 100,
@@ -295,84 +264,7 @@
             }
         }
 
-        // === РЕЖИМ 2: ПТИЧЬИ БЕГА - УЛУЧШЕННЫЙ ===
-        function initRaceMode() {
-            pipes = [];
-            items = [];
-            
-            // Создаем воздушные препятствия (облака с птицами)
-            for (let i = 0; i < 4; i++) {
-                pipes.push({
-                    type: 'flying_obstacle',
-                    x: canvas.width + i * 200,
-                    y: Math.random() * (canvas.height - 200) + 50,
-                    width: 60,
-                    height: 40,
-                    passed: false,
-                    speed: 2 + Math.random() * 2
-                });
-            }
-
-            // Создаем летающие яйца
-            for (let i = 0; i < 6; i++) {
-                items.push({
-                    type: 'flying_egg',
-                    x: canvas.width + Math.random() * canvas.width,
-                    y: Math.random() * (canvas.height - 150) + 50,
-                    width: 25,
-                    height: 30,
-                    collected: false,
-                    amplitude: Math.random() * 15 + 5,
-                    speed: Math.random() * 0.03 + 0.02
-                });
-            }
-        }
-
-        // === РЕЖИМ 3: НЕСУШКИ ===
-        function createLayerPipe() {
-            // Оптимизация: проверяем лимит объектов
-            if (pipes.length >= config.maxObjects) return;
-            
-            const minHeight = canvas.height * 0.2;
-            const maxHeight = canvas.height - config.pipeGap - minHeight;
-            const height = Math.random() * (maxHeight - minHeight) + minHeight;
-            
-            const pipeId = Date.now();
-            
-            pipes.push({
-                id: pipeId,
-                type: 'barn',
-                x: canvas.width,
-                y: 0,
-                width: config.pipeWidth,
-                height: height,
-                passed: false,
-                isTop: true
-            }, {
-                id: pipeId,
-                type: 'barn',
-                x: canvas.width,
-                y: height + config.pipeGap,
-                width: config.pipeWidth,
-                height: canvas.height - height - config.pipeGap,
-                passed: false,
-                isTop: false
-            });
-
-            // Яйца в гнездах (только в нижних сараях)
-            if (items.length < config.maxObjects / 2) {
-                items.push({
-                    type: 'nest_egg',
-                    x: canvas.width + config.pipeWidth / 2 - 10,
-                    y: height + config.pipeGap + 20,
-                    width: 20,
-                    height: 25,
-                    collected: false
-                });
-            }
-        }
-
-        // === ОПТИМИЗИРОВАННАЯ ОТРИСОВКА КУРИЦЫ ===
+        // === ОТРИСОВКА КУРИЦЫ ===
         function drawBird() {
             ctx.save();
             ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
@@ -381,188 +273,134 @@
             bird.rotation += (targetRotation - bird.rotation) * 0.1;
             ctx.rotate(bird.rotation);
             
-            // Упрощенная анимация крыльев (каждый 3 кадр)
-            if (frames % 3 === 0) {
-                bird.wingFlap += 0.2;
-            }
-            const wingOffset = Math.sin(bird.wingFlap) * 3;
-            
             // Тело курицы
             ctx.fillStyle = colors.accent;
             ctx.beginPath();
             ctx.ellipse(0, 0, bird.width / 2, bird.height / 2, 0, 0, Math.PI * 2);
             ctx.fill();
             
-            // Крылья (упрощенная версия)
-            ctx.fillStyle = '#FFA500';
-            ctx.fillRect(-bird.width / 2.5, -bird.height / 4 + wingOffset, bird.width / 2, bird.height / 3);
-            
             // Голова
             ctx.fillStyle = colors.accent;
-            ctx.fillRect(bird.width / 4, -bird.height / 2, bird.width / 2, bird.height / 2);
+            ctx.beginPath();
+            ctx.arc(bird.width * 0.3, -bird.height * 0.3, bird.width * 0.25, 0, Math.PI * 2);
+            ctx.fill();
             
             // Глаз
             ctx.fillStyle = colors.white;
-            ctx.fillRect(bird.width / 2.5, -bird.height / 2.5, bird.width / 8, bird.width / 8);
+            ctx.beginPath();
+            ctx.arc(bird.width * 0.4, -bird.height * 0.35, bird.width * 0.08, 0, Math.PI * 2);
+            ctx.fill();
             
             ctx.fillStyle = colors.primary;
-            ctx.fillRect(bird.width / 2.3, -bird.height / 2.7, bird.width / 16, bird.width / 16);
+            ctx.beginPath();
+            ctx.arc(bird.width * 0.42, -bird.height * 0.35, bird.width * 0.04, 0, Math.PI * 2);
+            ctx.fill();
             
             // Клюв
             ctx.fillStyle = '#FF6B35';
             ctx.beginPath();
-            ctx.moveTo(bird.width / 2, -bird.height / 4);
-            ctx.lineTo(bird.width / 1.5, -bird.height / 4);
-            ctx.lineTo(bird.width / 2, -bird.height / 8);
+            ctx.moveTo(bird.width * 0.45, -bird.height * 0.3);
+            ctx.lineTo(bird.width * 0.6, -bird.height * 0.3);
+            ctx.lineTo(bird.width * 0.45, -bird.height * 0.2);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Хвост
+            ctx.fillStyle = colors.accent;
+            ctx.beginPath();
+            ctx.moveTo(-bird.width * 0.4, 0);
+            ctx.lineTo(-bird.width * 0.8, -bird.height * 0.3);
+            ctx.lineTo(-bird.width * 0.8, bird.height * 0.3);
             ctx.closePath();
             ctx.fill();
             
             ctx.restore();
         }
 
-        // === ОТРИСОВКА ПРЕПЯТСТВИЙ ===
+        // === ОТРИСОВКА КОЛОСКОВ ===
         function drawPipes() {
             pipes.forEach(pipe => {
-                if (pipe.type === 'wheat') {
-                    drawWheatPipe(pipe);
-                } else if (pipe.type === 'barn') {
-                    drawBarnPipe(pipe);
-                } else if (pipe.type === 'flying_obstacle') {
-                    drawFlyingObstacle(pipe);
+                // Основной фон колоска
+                ctx.fillStyle = '#8FBC8F';
+                ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
+                
+                // Стебли
+                ctx.strokeStyle = '#556B2F';
+                ctx.lineWidth = 3;
+                const stemCount = Math.floor(pipe.width / 12);
+                
+                for (let i = 0; i < stemCount; i++) {
+                    const stemX = pipe.x + 8 + (i * pipe.width / stemCount);
+                    const startY = pipe.isTop ? pipe.y + pipe.height : pipe.y;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(stemX, startY);
+                    ctx.lineTo(stemX, pipe.isTop ? pipe.y : pipe.y + pipe.height);
+                    ctx.stroke();
+                    
+                    // Колосья
+                    ctx.fillStyle = '#DAA520';
+                    if (pipe.isTop) {
+                        ctx.beginPath();
+                        ctx.moveTo(stemX - 6, pipe.y + 5);
+                        ctx.lineTo(stemX + 6, pipe.y + 5);
+                        ctx.lineTo(stemX, pipe.y - 10);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else {
+                        ctx.beginPath();
+                        ctx.moveTo(stemX - 6, pipe.y + pipe.height - 5);
+                        ctx.lineTo(stemX + 6, pipe.y + pipe.height - 5);
+                        ctx.lineTo(stemX, pipe.y + pipe.height + 10);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
                 }
             });
         }
 
-        // === УПРОЩЕННАЯ ОТРИСОВКА КОЛОСКОВ ===
-        function drawWheatPipe(pipe) {
-            ctx.fillStyle = '#8FBC8F';
-            ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
-            
-            // Упрощенные стебли
-            ctx.fillStyle = '#556B2F';
-            const stemCount = Math.floor(pipe.width / 15);
-            for (let i = 0; i < stemCount; i++) {
-                const stemX = pipe.x + 10 + (i * pipe.width / stemCount);
-                if (pipe.isTop) {
-                    ctx.fillRect(stemX, pipe.y + 10, 2, pipe.height - 10);
-                    // Колос
-                    ctx.fillStyle = '#DAA520';
-                    ctx.fillRect(stemX - 4, pipe.y, 8, 10);
-                    ctx.fillStyle = '#556B2F';
-                } else {
-                    ctx.fillRect(stemX, pipe.y, 2, pipe.height - 10);
-                    // Колос
-                    ctx.fillStyle = '#DAA520';
-                    ctx.fillRect(stemX - 4, pipe.y + pipe.height - 10, 8, 10);
-                    ctx.fillStyle = '#556B2F';
-                }
-            }
-        }
-
-        // === УПРОЩЕННАЯ ОТРИСОВКА САРАЕВ ===
-        function drawBarnPipe(pipe) {
-            // Основное здание
-            ctx.fillStyle = '#8B4513';
-            ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
-            
-            // Крыша
-            ctx.fillStyle = '#A52A2A';
-            if (pipe.isTop) {
-                ctx.fillRect(pipe.x - 5, pipe.y + pipe.height - 20, pipe.width + 10, 20);
-            } else {
-                ctx.fillRect(pipe.x - 5, pipe.y, pipe.width + 10, 20);
-            }
-            
-            // Окна
-            ctx.fillStyle = '#87CEEB';
-            ctx.fillRect(pipe.x + 15, pipe.y + (pipe.isTop ? 15 : pipe.height - 35), 20, 20);
-            ctx.fillRect(pipe.x + pipe.width - 35, pipe.y + (pipe.isTop ? 15 : pipe.height - 35), 20, 20);
-        }
-
-        // === ОТРИСОВКА ВОЗДУШНЫХ ПРЕПЯТСТВИЙ ===
-        function drawFlyingObstacle(obstacle) {
-            // Облако
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.beginPath();
-            ctx.arc(obstacle.x + 20, obstacle.y + 20, 15, 0, Math.PI * 2);
-            ctx.arc(obstacle.x + 40, obstacle.y + 15, 20, 0, Math.PI * 2);
-            ctx.arc(obstacle.x + 60, obstacle.y + 20, 15, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Птица в облаке
-            ctx.fillStyle = '#FF6B6B';
-            ctx.fillRect(obstacle.x + 30, obstacle.y + 15, 20, 10);
-            ctx.fillRect(obstacle.x + 45, obstacle.y + 10, 10, 15);
-        }
-
-        // === ОПТИМИЗИРОВАННАЯ ОТРИСОВКА ПРЕДМЕТОВ ===
+        // === ОТРИСОВКА ЗЕРЕН ===
         function drawItems() {
             items.forEach(item => {
                 if (item.collected) return;
                 
-                if (item.type === 'grain') {
-                    // Зерно
-                    ctx.fillStyle = '#DAA520';
-                    ctx.fillRect(item.x, item.y, item.width, item.height);
-                    
-                } else if (item.type === 'flying_egg') {
-                    // Летающее яйцо с упрощенной анимацией
-                    const floatOffset = Math.sin(frames * item.speed) * item.amplitude;
-                    ctx.fillStyle = colors.white;
-                    ctx.fillRect(item.x, item.y + floatOffset, item.width, item.height);
-                    
-                } else if (item.type === 'nest_egg') {
-                    // Яйцо в гнезде
-                    ctx.fillStyle = '#8B4513';
-                    ctx.fillRect(item.x - 8, item.y + 5, 16, 8);
-                    ctx.fillStyle = colors.white;
-                    ctx.fillRect(item.x, item.y, item.width, item.height);
-                }
-            });
-        }
-
-        // === ОПТИМИЗИРОВАННАЯ ОТРИСОВКА ОБЛАКОВ ===
-        function drawClouds() {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-            clouds.forEach(cloud => {
-                // Упрощенные облака (круги вместо сложных форм)
+                // Зерно
+                ctx.fillStyle = '#DAA520';
                 ctx.beginPath();
-                ctx.arc(cloud.x, cloud.y, cloud.size * 0.4, 0, Math.PI * 2);
-                ctx.arc(cloud.x + cloud.size * 0.3, cloud.y, cloud.size * 0.3, 0, Math.PI * 2);
-                ctx.arc(cloud.x + cloud.size * 0.6, cloud.y, cloud.size * 0.4, 0, Math.PI * 2);
+                ctx.ellipse(item.x, item.y, item.width / 2, item.height / 2, Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Блик на зерне
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.beginPath();
+                ctx.ellipse(item.x - 2, item.y - 2, 2, 1, Math.PI / 4, 0, Math.PI * 2);
                 ctx.fill();
             });
         }
 
-        // === ОБНОВЛЕНИЕ ОБЛАКОВ ===
-        function updateClouds() {
-            clouds.forEach(cloud => {
-                cloud.x -= cloud.speed;
-                if (cloud.x + cloud.size < 0) {
-                    cloud.x = canvas.width + cloud.size;
-                }
-            });
-        }
-
-        // === ОПТИМИЗИРОВАННАЯ ОТРИСОВКА ФОНА ===
+        // === ОТРИСОВКА ФОНА ===
         function drawBackground() {
-            // Небо (без градиента для производительности)
+            // Небо
             ctx.fillStyle = colors.sky;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Облака
-            drawClouds();
-            
             // Земля
             ctx.fillStyle = colors.darkGreen;
-            ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+            ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
             
-            // Простая трава
+            // Трава
             ctx.fillStyle = colors.lightGreen;
-            ctx.fillRect(0, canvas.height - 40, canvas.width, 5);
+            for (let i = 0; i < canvas.width; i += 8) {
+                ctx.beginPath();
+                ctx.moveTo(i, canvas.height - 30);
+                ctx.lineTo(i + 4, canvas.height - 40);
+                ctx.lineTo(i + 8, canvas.height - 30);
+                ctx.closePath();
+                ctx.fill();
+            }
         }
 
-        // === ОПТИМИЗИРОВАННОЕ ОБНОВЛЕНИЕ ИГРЫ ===
+        // === ОБНОВЛЕНИЕ ИГРЫ ===
         function updateGame() {
             // Обновляем курицу
             bird.velocity += config.gravity;
@@ -572,46 +410,19 @@
                 bird.jumpCooldown--;
             }
             
-            // Обновляем облака (только каждый 2 кадр)
-            if (frames % 2 === 0) {
-                updateClouds();
-            }
-            
             // Границы экрана
             if (bird.y < 0) {
                 bird.y = 0;
                 bird.velocity = 0;
             }
-            if (bird.y + bird.height > canvas.height - 40) {
-                bird.y = canvas.height - 40 - bird.height;
+            if (bird.y + bird.height > canvas.height - 30) {
+                bird.y = canvas.height - 30 - bird.height;
                 gameOver();
             }
             
-            // Смена режима
-            if (Date.now() - lastModeChange > config.modeChangeInterval) {
-                changeMode();
-                lastModeChange = Date.now();
-            }
-            
-            // Обновление в зависимости от режима
-            switch(currentMode) {
-                case 'harvest':
-                    updateHarvestMode();
-                    break;
-                case 'race':
-                    updateRaceMode();
-                    break;
-                case 'layers':
-                    updateLayersMode();
-                    break;
-            }
-        }
-
-        // === ОБНОВЛЕНИЕ РЕЖИМА УБОРКИ ===
-        function updateHarvestMode() {
-            // Создаем новые колоски (реже для оптимизации)
-            if (Date.now() - lastPipeTime > config.pipeInterval && pipes.length < config.maxObjects - 2) {
-                createHarvestPipe();
+            // Создаем новые колоски
+            if (Date.now() - lastPipeTime > config.pipeInterval) {
+                createPipe();
                 lastPipeTime = Date.now();
             }
             
@@ -640,88 +451,6 @@
             });
             
             // Обновляем зерна
-            updateItems();
-        }
-
-        // === ОБНОВЛЕНИЕ РЕЖИМА ГОНКИ ===
-        function updateRaceMode() {
-            // Обновляем воздушные препятствия
-            pipes.forEach(pipe => {
-                pipe.x -= pipe.speed;
-                
-                if (!pipe.passed && pipe.x + pipe.width < bird.x) {
-                    pipe.passed = true;
-                    score += 1;
-                    scoreElement.textContent = score;
-                }
-                
-                if (checkCollision(bird, pipe)) {
-                    gameOver();
-                }
-                
-                // Возвращаем препятствия
-                if (pipe.x + pipe.width < -50) {
-                    pipe.x = canvas.width + Math.random() * 200;
-                    pipe.y = Math.random() * (canvas.height - 200) + 50;
-                }
-            });
-            
-            // Обновляем летающие яйца
-            updateItems();
-            
-            // Создаем новые летающие яйца (реже)
-            if (items.length < 4 && Math.random() < 0.005) {
-                items.push({
-                    type: 'flying_egg',
-                    x: canvas.width + Math.random() * 100,
-                    y: Math.random() * (canvas.height - 150) + 50,
-                    width: 25,
-                    height: 30,
-                    collected: false,
-                    amplitude: Math.random() * 15 + 5,
-                    speed: Math.random() * 0.03 + 0.02
-                });
-            }
-        }
-
-        // === ОБНОВЛЕНИЕ РЕЖИМА НЕСУШЕК ===
-        function updateLayersMode() {
-            // Создаем новые сараи (реже)
-            if (Date.now() - lastPipeTime > config.pipeInterval && pipes.length < config.maxObjects - 2) {
-                createLayerPipe();
-                lastPipeTime = Date.now();
-            }
-            
-            // Обновляем сараи
-            pipes = pipes.filter(pipe => pipe.x + pipe.width > -100);
-            
-            const passedPairs = new Set();
-            
-            pipes.forEach(pipe => {
-                pipe.x -= config.pipeSpeed;
-                
-                // Начисляем очки только за пару препятствий
-                if (!pipe.passed && pipe.x + pipe.width < bird.x) {
-                    pipe.passed = true;
-                    if (!passedPairs.has(pipe.id)) {
-                        passedPairs.add(pipe.id);
-                        score += 1;
-                        scoreElement.textContent = score;
-                    }
-                }
-                
-                // Проверка столкновения
-                if (checkCollision(bird, pipe)) {
-                    gameOver();
-                }
-            });
-            
-            // Обновляем яйца
-            updateItems();
-        }
-
-        // === ОБНОВЛЕНИЕ ПРЕДМЕТОВ ===
-        function updateItems() {
             items = items.filter(item => !item.collected && item.x > -50);
             
             items.forEach(item => {
@@ -744,54 +473,12 @@
                    obj1.y + obj1.height > obj2.y;
         }
 
-        // === СМЕНА РЕЖИМА ===
-        function changeMode() {
-            const modes = ['harvest', 'race', 'layers'];
-            let newMode;
-            do {
-                newMode = modes[Math.floor(Math.random() * modes.length)];
-            } while (newMode === currentMode && modes.length > 1);
-            
-            currentMode = newMode;
-            
-            // Очищаем старые объекты
-            pipes = [];
-            items = [];
-            lastPipeTime = Date.now();
-            
-            // Инициализация нового режима
-            if (currentMode === 'race') {
-                initRaceMode();
-            }
-        }
-
-        // === ОПТИМИЗИРОВАННЫЙ ИГРОВОЙ ЦИКЛ ===
-        function gameLoop(timestamp) {
+        // === ИГРОВОЙ ЦИКЛ ===
+        function gameLoop() {
             if (!gameActive) return;
-            
-            // Вычисляем FPS
-            frameCount++;
-            if (timestamp - lastFpsUpdate >= 1000) {
-                fps = frameCount;
-                frameCount = 0;
-                lastFpsUpdate = timestamp;
-                // console.log('FPS:', fps); // Для отладки
-            }
-            
-            // Пропускаем кадры если FPS слишком высокий
-            const deltaTime = timestamp - lastFrameTime;
-            if (deltaTime < 16) { // ~60 FPS максимум
-                requestAnimationFrame(gameLoop);
-                return;
-            }
-            lastFrameTime = timestamp;
             
             frames++;
             
-            // Очищаем canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Рисуем и обновляем игру
             drawBackground();
             updateGame();
             drawPipes();
@@ -804,26 +491,16 @@
         // === НАЧАЛО ИГРЫ ===
         function startGame() {
             initBird();
-            initClouds();
             pipes = [];
             items = [];
             score = 0;
             frames = 0;
-            currentMode = getRandomMode();
             lastPipeTime = Date.now();
-            lastModeChange = Date.now();
-            lastFrameTime = performance.now();
-            lastFpsUpdate = performance.now();
             scoreElement.textContent = score;
             gameActive = true;
             startScreen.style.display = 'none';
             gameOverScreen.style.display = 'none';
-            
-            if (currentMode === 'race') {
-                initRaceMode();
-            }
-            
-            requestAnimationFrame(gameLoop);
+            gameLoop();
         }
 
         // === КОНЕЦ ИГРЫ ===
@@ -862,7 +539,6 @@
         window.addEventListener('load', function() {
             resizeCanvas();
             initBird();
-            initClouds();
         });
 
         console.log('🐔 Птичка-Очередняра готова к работе!');
