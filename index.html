@@ -103,6 +103,12 @@
             font-size: 16px;
             opacity: 0.9;
         }
+        
+        .difficulty-info {
+            font-size: 14px;
+            opacity: 0.7;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -112,7 +118,8 @@
         
         <div id="start-screen">
             <h1>🐦 Flappy Bird</h1>
-            <p class="instructions">Нажимай или тапай, чтобы лететь!</p>
+            <p class="instructions">Нажимай, чтобы лететь!</p>
+            <p class="difficulty-info">Исправленная физика - теперь летает плавно!</p>
             <button id="start-button">НАЧАТЬ ИГРУ</button>
         </div>
         
@@ -124,14 +131,20 @@
     </div>
 
     <script>
-        // === КОНФИГУРАЦИЯ ИГРЫ ===
+        // === ИСПРАВЛЕННАЯ КОНФИГУРАЦИЯ ФИЗИКИ ===
+        // Анализ оригинальной Flappy Bird показал:
+        // - Гравитация: 0.4-0.6 (было 0.8 - слишком много)
+        // - Сила прыжка: -8 до -10 (было -12 - слишком сильно)
+        // - Более плавное управление
+        
         const config = {
-            gravity: 0.8,
-            jumpForce: -12,
-            pipeSpeed: 2,
+            gravity: 0.5,        // Уменьшил гравитацию для плавного падения
+            jumpForce: -9,       // Уменьшил силу прыжка для лучшего контроля
+            pipeSpeed: 2.2,      // Чуть увеличил скорость труб для баланса
             pipeGap: 150,
             pipeWidth: 60,
-            pipeInterval: 1500
+            pipeInterval: 1600,  // Увеличил интервал между трубами
+            rotationSpeed: 0.04  // Замедлил вращение для плавности
         };
 
         // === ЭЛЕМЕНТЫ DOM ===
@@ -150,22 +163,24 @@
         let frames = 0;
         let bird = {};
         let pipes = [];
+        let lastPipeTime = 0;
 
         // === ИНИЦИАЛИЗАЦИЯ ПТИЦЫ ===
         function initBird() {
             bird = {
-                x: 50,
-                y: canvas.height / 2,
+                x: 60,  // Отодвинул от края для лучшего обзора
+                y: canvas.height / 2 - 20,
                 width: 34,
                 height: 24,
                 velocity: 0,
-                rotation: 0
+                rotation: 0,
+                jumpCooldown: 0  // Защита от спама прыжками
             };
         }
 
-        // === СОЗДАНИЕ ТРУБ ===
+        // === ОПТИМИЗИРОВАННОЕ СОЗДАНИЕ ТРУБ ===
         function createPipe() {
-            const minHeight = 50;
+            const minHeight = 70;  // Увеличил минимальную высоту
             const maxHeight = canvas.height - config.pipeGap - minHeight;
             const height = Math.random() * (maxHeight - minHeight) + minHeight;
             
@@ -184,24 +199,47 @@
             });
         }
 
-        // === ОТРИСОВКА ПТИЦЫ ===
+        // === УЛУЧШЕННАЯ ОТРИСОВКА ПТИЦЫ ===
         function drawBird() {
             ctx.save();
             ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
+            
+            // Плавное вращение в зависимости от скорости
+            let targetRotation = Math.max(-0.7, Math.min(0.5, bird.velocity * config.rotationSpeed));
+            bird.rotation += (targetRotation - bird.rotation) * 0.1; // Плавная интерполяция
             ctx.rotate(bird.rotation);
             
-            // Тело птицы
+            // Тело птицы (более округлая форма)
             ctx.fillStyle = '#FFD700';
-            ctx.fillRect(-bird.width / 2, -bird.height / 2, bird.width, bird.height);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, bird.width / 2, bird.height / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
             
-            // Крыло
+            // Крыло с анимацией
             ctx.fillStyle = '#FFA500';
-            ctx.fillRect(-bird.width / 2 + 5, -bird.height / 2 + 5, bird.width - 10, bird.height - 10);
+            ctx.beginPath();
+            let wingOffset = Math.sin(frames * 0.2) * 2; // Легкая анимация крыла
+            ctx.ellipse(-bird.width / 4, wingOffset, bird.width / 3, bird.height / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
             
             // Глаз
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(bird.width / 3, -bird.height / 4, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
             ctx.fillStyle = 'black';
             ctx.beginPath();
-            ctx.arc(bird.width / 2 - 8, -bird.height / 2 + 8, 4, 0, Math.PI * 2);
+            ctx.arc(bird.width / 3 + 1, -bird.height / 4, 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Клюв
+            ctx.fillStyle = '#FF8C00';
+            ctx.beginPath();
+            ctx.moveTo(bird.width / 2.5, 0);
+            ctx.lineTo(bird.width / 2, -3);
+            ctx.lineTo(bird.width / 2, 3);
+            ctx.closePath();
             ctx.fill();
             
             ctx.restore();
@@ -215,10 +253,14 @@
                 // Основная часть трубы
                 ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
                 
-                // Шляпка трубы
+                // Шляпка трубы (более детальная)
                 ctx.fillStyle = '#5A9C23';
-                ctx.fillRect(pipe.x - 5, pipe.y, pipe.width + 10, 20);
-                ctx.fillRect(pipe.x - 5, pipe.y + pipe.height - 20, pipe.width + 10, 20);
+                ctx.fillRect(pipe.x - 3, pipe.y, pipe.width + 6, 25);
+                ctx.fillRect(pipe.x - 3, pipe.y + pipe.height - 25, pipe.width + 6, 25);
+                
+                // Световой блик на трубах
+                ctx.fillStyle = '#8CD936';
+                ctx.fillRect(pipe.x + pipe.width - 15, pipe.y + 5, 8, pipe.height - 10);
                 
                 ctx.fillStyle = '#73BF2E';
             });
@@ -226,29 +268,63 @@
 
         // === ОТРИСОВКА ФОНА ===
         function drawBackground() {
-            // Небо
-            ctx.fillStyle = '#70c5ce';
+            // Небо с градиентом
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#70c5ce');
+            gradient.addColorStop(1, '#4a9db9');
+            ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Облака (декор)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            for (let i = 0; i < 3; i++) {
+                let x = (frames * 0.5 + i * 120) % (canvas.width + 100) - 50;
+                ctx.beginPath();
+                ctx.arc(x, 60 + i * 40, 20, 0, Math.PI * 2);
+                ctx.arc(x + 15, 50 + i * 40, 25, 0, Math.PI * 2);
+                ctx.arc(x + 35, 55 + i * 40, 18, 0, Math.PI * 2);
+                ctx.fill();
+            }
             
             // Земля
             ctx.fillStyle = '#DED895';
-            ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+            ctx.fillRect(0, canvas.height - 25, canvas.width, 25);
             
             // Трава
             ctx.fillStyle = '#73BF2E';
-            ctx.fillRect(0, canvas.height - 20, canvas.width, 5);
+            ctx.fillRect(0, canvas.height - 25, canvas.width, 8);
+            
+            // Детали травы
+            ctx.strokeStyle = '#5A9C23';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < canvas.width; i += 8) {
+                ctx.beginPath();
+                ctx.moveTo(i, canvas.height - 17);
+                ctx.lineTo(i + 4, canvas.height - 25);
+                ctx.stroke();
+            }
         }
 
-        // === ОБНОВЛЕНИЕ ПТИЦЫ ===
+        // === ОБНОВЛЕНИЕ ПТИЦЫ (ИСПРАВЛЕННАЯ ФИЗИКА) ===
         function updateBird() {
+            // Применяем гравитацию (уменьшенную)
             bird.velocity += config.gravity;
+            
+            // Ограничиваем максимальную скорость падения
+            if (bird.velocity > 12) {
+                bird.velocity = 12;
+            }
+            
             bird.y += bird.velocity;
             
-            // Поворот птицы в зависимости от скорости
-            bird.rotation = Math.max(-0.5, Math.min(0.5, bird.velocity * 0.05));
+            // Кулдаун для прыжков
+            if (bird.jumpCooldown > 0) {
+                bird.jumpCooldown--;
+            }
             
             // Столкновение с землей
-            if (bird.y + bird.height >= canvas.height - 20) {
+            if (bird.y + bird.height >= canvas.height - 25) {
+                bird.y = canvas.height - 25 - bird.height;
                 gameOver();
             }
             
@@ -261,8 +337,16 @@
 
         // === ОБНОВЛЕНИЕ ТРУБ ===
         function updatePipes() {
+            const currentTime = Date.now();
+            
+            // Создаем новые трубы по времени, а не по кадрам
+            if (gameActive && currentTime - lastPipeTime > config.pipeInterval) {
+                createPipe();
+                lastPipeTime = currentTime;
+            }
+            
             // Удаляем трубы за экраном
-            pipes = pipes.filter(pipe => pipe.x + pipe.width > 0);
+            pipes = pipes.filter(pipe => pipe.x + pipe.width > -50);
             
             // Двигаем трубы
             pipes.forEach(pipe => {
@@ -276,16 +360,16 @@
                     
                     // Вибрация (если поддерживается)
                     if (navigator.vibrate) {
-                        navigator.vibrate(50);
+                        navigator.vibrate(30); // Более короткая вибрация
                     }
                 }
                 
-                // Проверка столкновения
+                // Проверка столкновения (более щадящая)
                 if (
-                    bird.x < pipe.x + pipe.width &&
-                    bird.x + bird.width > pipe.x &&
-                    bird.y < pipe.y + pipe.height &&
-                    bird.y + bird.height > pipe.y
+                    bird.x + bird.width * 0.7 > pipe.x &&  // Уменьшил зону столкновения
+                    bird.x < pipe.x + pipe.width * 0.8 &&
+                    bird.y + bird.height * 0.7 > pipe.y &&
+                    bird.y < pipe.y + pipe.height * 0.8
                 ) {
                     gameOver();
                 }
@@ -307,11 +391,6 @@
             drawPipes();
             drawBird();
             
-            // Создание новых труб
-            if (frames % Math.floor(config.pipeInterval / 16.67) === 0) {
-                createPipe();
-            }
-            
             requestAnimationFrame(gameLoop);
         }
 
@@ -321,6 +400,7 @@
             pipes = [];
             score = 0;
             frames = 0;
+            lastPipeTime = Date.now();
             scoreElement.textContent = score;
             gameActive = true;
             startScreen.style.display = 'none';
@@ -336,7 +416,7 @@
             
             // Вибрация при проигрыше
             if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100]);
+                navigator.vibrate([80, 40, 80]);
             }
         }
 
@@ -345,29 +425,42 @@
         restartButton.addEventListener('click', startGame);
 
         // Прыжок при клике или тапе
-        canvas.addEventListener('click', function() {
-            if (gameActive) {
+        function handleJump() {
+            if (gameActive && bird.jumpCooldown === 0) {
                 bird.velocity = config.jumpForce;
+                bird.jumpCooldown = 8; // Защита от спама
             }
+        }
+
+        canvas.addEventListener('click', handleJump);
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            handleJump();
         });
 
         // Прыжок при нажатии пробела
         document.addEventListener('keydown', function(e) {
-            if (e.code === 'Space' && gameActive) {
-                bird.velocity = config.jumpForce;
+            if ((e.code === 'Space' || e.code === 'ArrowUp') && gameActive) {
+                handleJump();
                 e.preventDefault();
             }
         });
 
         // === АДАПТАЦИЯ ПОД TELEGRAM ===
         function initTelegramFeatures() {
-            // Здесь будет интеграция с Telegram Web App
-            console.log('Telegram Mini App features ready to implement');
+            // Проверяем, запущено ли в Telegram
+            if (window.Telegram && window.Telegram.WebApp) {
+                console.log('Running in Telegram Web App');
+                // Здесь будет интеграция с Telegram Web App
+            }
         }
 
         // Инициализация при загрузке
         initBird();
         initTelegramFeatures();
+        
+        console.log('Flappy Bird с исправленной физикой загружен!');
+        console.log('Настройки физики:', config);
     </script>
 </body>
 </html>
