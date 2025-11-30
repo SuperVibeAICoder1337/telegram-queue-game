@@ -341,7 +341,7 @@
             ctx.restore();
         }
 
-        // === ОТРИСОВКА КОЛОСКОВ ===
+       // === ОТРИСОВКА КОЛОСКОВ ===
         function drawPipes() {
             pipes.forEach(pipe => {
                 // Основной фон колоска
@@ -362,20 +362,22 @@
                     ctx.lineTo(stemX, pipe.isTop ? pipe.y : pipe.y + pipe.height);
                     ctx.stroke();
                     
-                    // Колосья
+                    // Колосья - ИСПРАВЛЕННАЯ ЧАСТЬ
                     ctx.fillStyle = '#DAA520';
                     if (pipe.isTop) {
-                        ctx.beginPath();
-                        ctx.moveTo(stemX - 6, pipe.y + 5);
-                        ctx.lineTo(stemX + 6, pipe.y + 5);
-                        ctx.lineTo(stemX, pipe.y - 10);
-                        ctx.closePath();
-                        ctx.fill();
-                    } else {
+                        // Верхний колосок - свисает ВНИЗ
                         ctx.beginPath();
                         ctx.moveTo(stemX - 6, pipe.y + pipe.height - 5);
                         ctx.lineTo(stemX + 6, pipe.y + pipe.height - 5);
                         ctx.lineTo(stemX, pipe.y + pipe.height + 10);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else {
+                        // Нижний колосок - растет ВВЕРХ  
+                        ctx.beginPath();
+                        ctx.moveTo(stemX - 6, pipe.y + 5);
+                        ctx.lineTo(stemX + 6, pipe.y + 5);
+                        ctx.lineTo(stemX, pipe.y - 10);
                         ctx.closePath();
                         ctx.fill();
                     }
