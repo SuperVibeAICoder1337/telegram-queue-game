@@ -42,7 +42,35 @@
             color: #00ffea;
             font-weight: bold;
             z-index: 10;
-            font-family: 'Courier New', monospace;
+        }
+        
+        #energy-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 100px;
+            height: 20px;
+            background: rgba(0, 255, 234, 0.2);
+            border: 1px solid #00ffea;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #energy-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #00ffea, #ff00ff);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        #ability-indicator {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            color: #00ffea;
+            font-size: 14px;
+            opacity: 0.7;
         }
         
         #start-screen, #game-over-screen {
@@ -77,6 +105,15 @@
             display: block;
         }
         
+        .instructions {
+            color: #00ffea;
+            font-size: 14px;
+            margin-bottom: 20px;
+            text-align: center;
+            line-height: 1.4;
+            opacity: 0.8;
+        }
+        
         button {
             background: #00ffea;
             color: #000;
@@ -89,6 +126,7 @@
             font-family: 'Courier New', monospace;
             box-shadow: 0 0 15px #00ffea;
             transition: all 0.3s ease;
+            margin-top: 10px;
         }
         
         button:hover {
@@ -100,7 +138,7 @@
             font-size: 48px;
             font-weight: bold;
             color: #00ffea;
-            margin: 30px 0;
+            margin: 20px 0;
         }
     </style>
 </head>
@@ -108,11 +146,20 @@
     <div id="game-container">
         <canvas id="gameCanvas" width="320" height="480"></canvas>
         <div id="score">0</div>
+        <div id="energy-container">
+            <div id="energy-bar"></div>
+        </div>
+        <div id="ability-indicator">ТУРБО: ОТКЛ</div>
         
         <div id="start-screen">
             <div class="title">
                 <span class="title-line">ПТИЧКА</span>
                 <span class="title-line">ОЧЕРЕДНЯРА</span>
+            </div>
+            <div class="instructions">
+                КЛИК - прыжок (10 энергии)<br>
+                5 прыжков = ТУРБО-РЕЖИМ!<br>
+                ТУРБО проходит сквозь барьеры!
             </div>
             <button id="start-button">СТАРТ</button>
         </div>
@@ -139,6 +186,8 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
+        const energyBar = document.getElementById('energy-bar');
+        const abilityIndicator = document.getElementById('ability-indicator');
         const startScreen = document.getElementById('start-screen');
         const gameOverScreen = document.getElementById('game-over-screen');
         const finalScoreElement = document.getElementById('final-score');
@@ -152,6 +201,10 @@
         let bird = {};
         let pipes = [];
         let lastPipeTime = 0;
+        let energy = 100;
+        let jumpCount = 0;
+        let turboActive = false;
+        let turboFrames = 0;
 
         // === ИНИЦИАЛИЗАЦИЯ ПТИЦЫ ===
         function initBird() {
@@ -162,7 +215,8 @@
                 height: 30,
                 velocity: 0,
                 rotation: 0,
-                jumpCooldown: 0
+                jumpCooldown: 0,
+                invincible: false
             };
         }
 
@@ -202,8 +256,13 @@
             bird.rotation += (targetRotation - bird.rotation) * 0.1;
             ctx.rotate(bird.rotation);
             
-            // Тело птицы
-            ctx.fillStyle = '#00ffea';
+            // Меняем цвет в турбо-режиме
+            if (turboActive) {
+                ctx.fillStyle = frames % 10 < 5 ? '#ff00ff' : '#00ffea';
+            } else {
+                ctx.fillStyle = '#00ffea';
+            }
+            
             ctx.fillRect(-bird.width / 2, -bird.height / 2, bird.width, bird.height);
             
             // Детали
@@ -211,7 +270,7 @@
             ctx.fillRect(-bird.width / 2 + 5, -bird.height / 2 + 5, 4, bird.height - 10);
             ctx.fillRect(bird.width / 2 - 9, -bird.height / 2 + 5, 4, bird.height - 10);
             
-            ctx.fillStyle = '#ff00ff';
+            ctx.fillStyle = turboActive ? '#00ffea' : '#ff00ff';
             ctx.beginPath();
             ctx.arc(bird.width / 4, -bird.height / 6, 6, 0, Math.PI * 2);
             ctx.fill();
@@ -221,15 +280,21 @@
 
         // === ОТРИСОВКА БАРЬЕРОВ ===
         function drawPipes() {
-            ctx.fillStyle = '#00ffea';
-            
             pipes.forEach(pipe => {
+                // Барьеры становятся прозрачными в турбо-режиме
+                if (turboActive) {
+                    ctx.globalAlpha = 0.3;
+                }
+                
+                ctx.fillStyle = '#00ffea';
                 ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
                 
                 // Светящийся эффект
                 ctx.strokeStyle = '#ff00ff';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(pipe.x - 1, pipe.y - 1, pipe.width + 2, pipe.height + 2);
+                
+                ctx.globalAlpha = 1;
             });
         }
 
@@ -239,9 +304,36 @@
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
+            // Эффект турбо-режима
+            if (turboActive) {
+                ctx.fillStyle = frames % 10 < 5 ? 'rgba(255, 0, 255, 0.1)' : 'rgba(0, 255, 234, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
             // Простой пол
             ctx.fillStyle = '#00ffea';
             ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+        }
+
+        // === ОБНОВЛЕНИЕ ЭНЕРГИИ ===
+        function updateEnergy() {
+            // Восстанавливаем энергию со временем
+            if (energy < 100) {
+                energy += 0.3;
+                if (energy > 100) energy = 100;
+            }
+            
+            // Обновляем полоску энергии
+            energyBar.style.width = energy + '%';
+            
+            // Меняем цвет в зависимости от уровня энергии
+            if (energy > 50) {
+                energyBar.style.background = 'linear-gradient(90deg, #00ffea, #ff00ff)';
+            } else if (energy > 20) {
+                energyBar.style.background = 'linear-gradient(90deg, #ffff00, #ffaa00)';
+            } else {
+                energyBar.style.background = 'linear-gradient(90deg, #ff0000, #ff4400)';
+            }
         }
 
         // === ОБНОВЛЕНИЕ ПТИЦЫ ===
@@ -258,6 +350,12 @@
                 bird.jumpCooldown--;
             }
             
+            // Обновляем энергию
+            updateEnergy();
+            
+            // Обновляем турбо-режим
+            updateTurbo();
+            
             if (bird.y + bird.height >= canvas.height - 20) {
                 bird.y = canvas.height - 20 - bird.height;
                 gameOver();
@@ -266,6 +364,23 @@
             if (bird.y <= 0) {
                 bird.y = 0;
                 bird.velocity = 0;
+            }
+        }
+
+        // === ОБНОВЛЕНИЕ ТУРБО-РЕЖИМА ===
+        function updateTurbo() {
+            if (turboActive) {
+                turboFrames--;
+                
+                // Индикатор турбо-режима
+                abilityIndicator.textContent = `ТУРБО: ${Math.ceil(turboFrames/60)}сек`;
+                abilityIndicator.style.opacity = '1';
+                
+                if (turboFrames <= 0) {
+                    turboActive = false;
+                    abilityIndicator.textContent = 'ТУРБО: ОТКЛ';
+                    abilityIndicator.style.opacity = '0.7';
+                }
             }
         }
 
@@ -296,7 +411,8 @@
                     }
                 }
                 
-                if (
+                // В турбо-режиме игнорируем столкновения
+                if (!turboActive &&
                     bird.x < pipe.x + pipe.width &&
                     bird.x + bird.width > pipe.x &&
                     bird.y < pipe.y + pipe.height &&
@@ -305,6 +421,41 @@
                     gameOver();
                 }
             });
+        }
+
+        // === ОБРАБОТКА ПРЫЖКА ===
+        function handleJump() {
+            if (!gameActive || bird.jumpCooldown > 0) return;
+            
+            // Проверяем достаточно ли энергии
+            if (energy >= 10) {
+                bird.velocity = config.jumpForce;
+                bird.jumpCooldown = 8;
+                
+                // Тратим энергию
+                energy -= 10;
+                
+                // Считаем прыжки для активации турбо
+                jumpCount++;
+                
+                if (jumpCount >= 5) {
+                    activateTurbo();
+                    jumpCount = 0;
+                }
+            }
+        }
+
+        // === АКТИВАЦИЯ ТУРБО-РЕЖИМА ===
+        function activateTurbo() {
+            turboActive = true;
+            turboFrames = 180; // 3 секунды при 60fps
+            abilityIndicator.textContent = 'ТУРБО: АКТИВ!';
+            abilityIndicator.style.opacity = '1';
+            
+            // Вибрация при активации турбо
+            if (navigator.vibrate) {
+                navigator.vibrate(200);
+            }
         }
 
         // === ИГРОВОЙ ЦИКЛ ===
@@ -327,9 +478,15 @@
             initBird();
             pipes = [];
             score = 0;
+            energy = 100;
+            jumpCount = 0;
+            turboActive = false;
             frames = 0;
             lastPipeTime = Date.now();
             scoreElement.textContent = score;
+            energyBar.style.width = '100%';
+            abilityIndicator.textContent = 'ТУРБО: ОТКЛ';
+            abilityIndicator.style.opacity = '0.7';
             gameActive = true;
             startScreen.style.display = 'none';
             gameOverScreen.style.display = 'none';
@@ -348,16 +505,8 @@
         }
 
         // === ОБРАБОТЧИКИ СОБЫТИЙ ===
-        // ФИКС: Добавляем обработчики правильно
         startButton.addEventListener('click', startGame);
         restartButton.addEventListener('click', startGame);
-
-        function handleJump() {
-            if (gameActive && bird.jumpCooldown === 0) {
-                bird.velocity = config.jumpForce;
-                bird.jumpCooldown = 8;
-            }
-        }
 
         canvas.addEventListener('click', handleJump);
         canvas.addEventListener('touchstart', function(e) {
@@ -375,7 +524,7 @@
         // === ИНИЦИАЛИЗАЦИЯ ===
         initBird();
         
-        console.log('Игра загружена!');
+        console.log('Игра с новой механикой загружена!');
     </script>
 </body>
 </html>
