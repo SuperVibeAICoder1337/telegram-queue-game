@@ -201,8 +201,8 @@
         let currentMode = '';
         let horizontalSpeed = 0;
         let raceOpponents = [];
-        let backgroundOffset = 0;
         let clouds = [];
+        let lastFrameTime = 0;
 
         // === ЦВЕТА РСХБ ===
         const colors = {
@@ -255,7 +255,6 @@
             
             const pipeId = Date.now();
             
-            // Создаем пару препятствий с одним ID
             pipes.push({
                 id: pipeId,
                 type: 'wheat',
@@ -291,9 +290,9 @@
             }
         }
 
-        // === РЕЖИМ 2: ПТИЧЬИ БЕГА ===
+        // === РЕЖИМ 2: ПТИЧЬИ БЕГА - ИСПРАВЛЕННЫЙ ===
         function initRaceMode() {
-            horizontalSpeed = 5;
+            horizontalSpeed = 0; // Убираем автоматическое движение вправо
             pipes = [];
             items = [];
             raceOpponents = [];
@@ -321,6 +320,18 @@
                     collected: false,
                     amplitude: Math.random() * 20 + 10,
                     speed: Math.random() * 0.05 + 0.02
+                });
+            }
+            
+            // Добавляем горизонтальные препятствия в воздухе
+            for (let i = 0; i < 4; i++) {
+                pipes.push({
+                    type: 'race_barrier',
+                    x: canvas.width + i * 250,
+                    y: Math.random() * (canvas.height - 200) + 50,
+                    width: 120,
+                    height: 30,
+                    passed: false
                 });
             }
         }
@@ -353,18 +364,21 @@
                 isTop: false
             });
 
-            // Яйца в гнездах
-            items.push({
-                type: 'nest_egg',
-                x: canvas.width + config.pipeWidth / 2 - 10,
-                y: height + config.pipeGap / 2 - 10,
-                width: 20,
-                height: 20,
-                collected: false
-            });
+            // Улучшенные яйца в гнездах - теперь только в нижних сараях
+            if (!pipeId.eggCreated) {
+                items.push({
+                    type: 'nest_egg',
+                    x: canvas.width + config.pipeWidth / 2 - 10,
+                    y: height + config.pipeGap + 20, // Размещаем внизу
+                    width: 20,
+                    height: 25,
+                    collected: false
+                });
+                pipeId.eggCreated = true;
+            }
         }
 
-        // === УЛУЧШЕННАЯ ОТРИСОВКА КУРИЦЫ С АНИМАЦИЕЙ КРЫЛЬЕВ ===
+        // === УЛУЧШЕННАЯ ОТРИСОВКА КУРИЦЫ ===
         function drawBird() {
             ctx.save();
             ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
@@ -479,6 +493,18 @@
             ctx.fillRect(pipe.x + pipe.width - 35, pipe.y + (pipe.isTop ? 15 : pipe.height - 35), 20, 20);
         }
 
+        // === ОТРИСОВКА ГОНОЧНЫХ ПРЕПЯТСТВИЙ ===
+        function drawRaceBarrier(barrier) {
+            ctx.fillStyle = '#FF4444';
+            ctx.fillRect(barrier.x, barrier.y, barrier.width, barrier.height);
+            
+            // Полосы
+            ctx.fillStyle = '#FFFF00';
+            for (let i = 0; i < barrier.width; i += 20) {
+                ctx.fillRect(barrier.x + i, barrier.y, 10, barrier.height);
+            }
+        }
+
         // === ОТРИСОВКА ТРАКТОРА ===
         function drawTractor(tractor) {
             // Кабина
@@ -503,7 +529,7 @@
             ctx.fillRect(tractor.x + 5, tractor.y - 10, 8, 10);
         }
 
-        // === ОТРИСОВКА ПРЕДМЕТОВ ===
+        // === УЛУЧШЕННАЯ ОТРИСОВКА ПРЕДМЕТОВ ===
         function drawItems() {
             items.forEach(item => {
                 if (item.collected) return;
@@ -530,15 +556,37 @@
                     ctx.fill();
                     
                 } else if (item.type === 'nest_egg') {
-                    // Яйцо в гнезде
+                    // Улучшенное яйцо в гнезде
+                    // Гнездо
                     ctx.fillStyle = '#8B4513';
                     ctx.beginPath();
-                    ctx.arc(item.x, item.y + 5, 15, 0, Math.PI * 2);
+                    ctx.arc(item.x, item.y + 8, 12, 0, Math.PI * 2);
                     ctx.fill();
                     
+                    // Текстура гнезда
+                    ctx.strokeStyle = '#A0522D';
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        ctx.beginPath();
+                        ctx.moveTo(item.x, item.y + 8);
+                        ctx.lineTo(
+                            item.x + Math.cos(angle) * 10,
+                            item.y + 8 + Math.sin(angle) * 10
+                        );
+                        ctx.stroke();
+                    }
+                    
+                    // Яйцо
                     ctx.fillStyle = colors.white;
                     ctx.beginPath();
                     ctx.ellipse(item.x, item.y, item.width / 2, item.height / 2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Блеск на яйце
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.beginPath();
+                    ctx.ellipse(item.x - 3, item.y - 2, 2, 1, 0, 0, Math.PI * 2);
                     ctx.fill();
                 }
             });
@@ -596,7 +644,7 @@
             }
         }
 
-        // === ОБНОВЛЕНИЕ ИГРЫ ===
+        // === ПЛАВНОЕ ОБНОВЛЕНИЕ ИГРЫ (ИСПРАВЛЕНИЕ ДЕРГАНИЯ) ===
         function updateGame() {
             // Обновляем курицу
             bird.velocity += config.gravity;
@@ -617,6 +665,11 @@
             if (bird.y + bird.height > canvas.height - 40) {
                 bird.y = canvas.height - 40 - bird.height;
                 gameOver();
+            }
+            
+            // В режиме гонки ограничиваем движение вправо
+            if (currentMode === 'race' && bird.x > canvas.width * 0.7) {
+                bird.x = canvas.width * 0.7;
             }
             
             // Смена режима
@@ -675,14 +728,14 @@
             updateItems();
         }
 
-        // === ОБНОВЛЕНИЕ РЕЖИМА ГОНКИ ===
+        // === ОБНОВЛЕНИЕ РЕЖИМА ГОНКИ - ИСПРАВЛЕННЫЙ ===
         function updateRaceMode() {
-            // Двигаем курицу вперед
-            bird.x += horizontalSpeed;
+            // В режиме гонки двигаем ВСЕ объекты навстречу игроку
+            // (птица остается на месте по горизонтали)
             
             // Обновляем тракторы
             raceOpponents.forEach(tractor => {
-                tractor.x -= tractor.speed;
+                tractor.x -= tractor.speed + 2;
                 
                 if (checkCollision(bird, tractor)) {
                     gameOver();
@@ -692,6 +745,27 @@
                 if (tractor.x + tractor.width < -50) {
                     tractor.x = canvas.width + Math.random() * 100;
                     tractor.speed = 3 + Math.random() * 2;
+                }
+            });
+            
+            // Обновляем горизонтальные препятствия
+            pipes.forEach(pipe => {
+                pipe.x -= config.pipeSpeed + 1;
+                
+                if (!pipe.passed && pipe.x + pipe.width < bird.x) {
+                    pipe.passed = true;
+                    score += 1;
+                    scoreElement.textContent = score;
+                }
+                
+                if (checkCollision(bird, pipe)) {
+                    gameOver();
+                }
+                
+                // Возвращаем препятствия
+                if (pipe.x + pipe.width < -50) {
+                    pipe.x = canvas.width + Math.random() * 200;
+                    pipe.y = Math.random() * (canvas.height - 200) + 50;
                 }
             });
             
@@ -755,7 +829,7 @@
             
             items.forEach(item => {
                 if (currentMode === 'race') {
-                    item.x -= horizontalSpeed + 1;
+                    item.x -= config.pipeSpeed + 1; // Двигаем предметы в режиме гонки
                 } else {
                     item.x -= config.pipeSpeed;
                 }
@@ -807,6 +881,8 @@
                     drawWheatPipe(pipe);
                 } else if (pipe.type === 'barn') {
                     drawBarnPipe(pipe);
+                } else if (pipe.type === 'race_barrier') {
+                    drawRaceBarrier(pipe);
                 }
             });
         }
@@ -820,9 +896,19 @@
             });
         }
 
-        // === ИГРОВОЙ ЦИКЛ ===
-        function gameLoop() {
+        // === ИГРОВОЙ ЦИКЛ С ПЛАВНОЙ АНИМАЦИЕЙ ===
+        function gameLoop(timestamp) {
             if (!gameActive) return;
+            
+            // Вычисляем deltaTime для плавной анимации
+            const deltaTime = timestamp - lastFrameTime;
+            lastFrameTime = timestamp;
+            
+            // Ограничиваем FPS для стабильности
+            if (deltaTime < 1000 / 60) {
+                requestAnimationFrame(gameLoop);
+                return;
+            }
             
             frames++;
             
@@ -847,6 +933,7 @@
             currentMode = getRandomMode();
             lastPipeTime = Date.now();
             lastModeChange = Date.now();
+            lastFrameTime = performance.now();
             scoreElement.textContent = score;
             gameActive = true;
             startScreen.style.display = 'none';
@@ -856,7 +943,7 @@
                 initRaceMode();
             }
             
-            gameLoop();
+            requestAnimationFrame(gameLoop);
         }
 
         // === КОНЕЦ ИГРЫ ===
