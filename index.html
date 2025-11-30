@@ -198,7 +198,7 @@
         let lastPipeTime = 0;
         let clouds = [];
 
-        // === ЦВЕТА  ===
+        // === ЦВЕТА РСХБ ===
         const colors = {
             primary: '#0B6E4F',
             accent: '#FFD200',
@@ -217,8 +217,22 @@
                 height: canvas.width * 0.08 * 0.8,
                 velocity: 0,
                 rotation: 0,
-                jumpCooldown: 0
+                jumpCooldown: 0,
+                wingFlap: 0
             };
+        }
+
+        // === ИНИЦИАЛИЗАЦИЯ ОБЛАКОВ ===
+        function initClouds() {
+            clouds = [];
+            for (let i = 0; i < 4; i++) {
+                clouds.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height * 0.4,
+                    size: 30 + Math.random() * 30,
+                    speed: 0.1 + Math.random() * 0.2
+                });
+            }
         }
 
         // === СОЗДАНИЕ КОЛОСКОВ ===
@@ -264,7 +278,7 @@
             }
         }
 
-        // === ОТРИСОВКА КУРИЦЫ ===
+        // === ОТРИСОВКА КУРИЦЫ С АНИМАЦИЕЙ КРЫЛЬЕВ ===
         function drawBird() {
             ctx.save();
             ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
@@ -273,10 +287,20 @@
             bird.rotation += (targetRotation - bird.rotation) * 0.1;
             ctx.rotate(bird.rotation);
             
+            // Анимация крыльев
+            bird.wingFlap += 0.3;
+            const wingOffset = Math.sin(bird.wingFlap) * 5;
+            
             // Тело курицы
             ctx.fillStyle = colors.accent;
             ctx.beginPath();
             ctx.ellipse(0, 0, bird.width / 2, bird.height / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Крылья с анимацией
+            ctx.fillStyle = '#FFA500';
+            ctx.beginPath();
+            ctx.ellipse(-bird.width / 3, wingOffset, bird.width / 3, bird.height / 3, 0, 0, Math.PI * 2);
             ctx.fill();
             
             // Голова
@@ -378,11 +402,41 @@
             });
         }
 
+        // === ОТРИСОВКА ОБЛАКОВ ===
+        function drawClouds() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            clouds.forEach(cloud => {
+                ctx.beginPath();
+                ctx.arc(cloud.x, cloud.y, cloud.size * 0.5, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.size * 0.3, cloud.y - cloud.size * 0.2, cloud.size * 0.4, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.size * 0.6, cloud.y, cloud.size * 0.5, 0, Math.PI * 2);
+                ctx.arc(cloud.x + cloud.size * 0.2, cloud.y + cloud.size * 0.1, cloud.size * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // === ОБНОВЛЕНИЕ ОБЛАКОВ ===
+        function updateClouds() {
+            clouds.forEach(cloud => {
+                cloud.x -= cloud.speed;
+                if (cloud.x + cloud.size < 0) {
+                    cloud.x = canvas.width + cloud.size;
+                    cloud.y = Math.random() * canvas.height * 0.4;
+                }
+            });
+        }
+
         // === ОТРИСОВКА ФОНА ===
         function drawBackground() {
-            // Небо
-            ctx.fillStyle = colors.sky;
+            // Небо с градиентом
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGradient.addColorStop(0, colors.sky);
+            skyGradient.addColorStop(1, '#4a9db9');
+            ctx.fillStyle = skyGradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Облака
+            drawClouds();
             
             // Земля
             ctx.fillStyle = colors.darkGreen;
@@ -409,6 +463,9 @@
             if (bird.jumpCooldown > 0) {
                 bird.jumpCooldown--;
             }
+            
+            // Обновляем облака
+            updateClouds();
             
             // Границы экрана
             if (bird.y < 0) {
@@ -491,6 +548,7 @@
         // === НАЧАЛО ИГРЫ ===
         function startGame() {
             initBird();
+            initClouds();
             pipes = [];
             items = [];
             score = 0;
@@ -539,6 +597,7 @@
         window.addEventListener('load', function() {
             resizeCanvas();
             initBird();
+            initClouds();
         });
 
         console.log('🐔 Птичка-Очередняра готова к работе!');
