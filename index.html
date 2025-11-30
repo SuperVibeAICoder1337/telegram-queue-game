@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Flappy Bird - Queue Game</title>
+    <title>Птичка-Очередняра - Киберпанк</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         * {
@@ -11,37 +11,56 @@
         }
         
         body {
-            font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             touch-action: manipulation;
             overflow: hidden;
+            color: #00ffea;
         }
         
         #game-container {
             position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            border-radius: 10px;
+            box-shadow: 
+                0 0 50px #00ffea,
+                inset 0 0 20px rgba(0, 255, 234, 0.1);
+            border-radius: 15px;
             overflow: hidden;
+            border: 2px solid #00ffea;
         }
         
         canvas {
             display: block;
-            background: #70c5ce;
+            background: #0a0a0a;
         }
         
         #score {
             position: absolute;
             top: 20px;
             left: 20px;
-            font-size: 40px;
-            color: white;
+            font-size: 32px;
+            color: #00ffea;
             font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 
+                0 0 10px #00ffea,
+                0 0 20px #00ffea;
             z-index: 10;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+        
+        #level {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 16px;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
+            z-index: 10;
+            font-family: 'Courier New', monospace;
         }
         
         #start-screen, #game-over-screen {
@@ -54,9 +73,11 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
+            background: rgba(10, 10, 20, 0.95);
+            color: #00ffea;
             z-index: 20;
+            text-align: center;
+            backdrop-filter: blur(5px);
         }
         
         #game-over-screen {
@@ -64,50 +85,125 @@
         }
         
         h1 {
-            font-size: 36px;
+            font-size: 42px;
             margin-bottom: 20px;
             text-align: center;
-            color: #f8e71c;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            color: #00ffea;
+            text-shadow: 
+                0 0 20px #00ffea,
+                0 0 40px #00ffea;
+            font-weight: bold;
+            letter-spacing: 3px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 20px #00ffea, 0 0 40px #00ffea; }
+            to { text-shadow: 0 0 30px #00ffea, 0 0 60px #00ffea, 0 0 80px #00ffea; }
+        }
+        
+        .subtitle {
+            color: #ff00ff;
+            font-size: 18px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #ff00ff;
+            letter-spacing: 1px;
         }
         
         button {
-            background: linear-gradient(45deg, #FF416C, #FF4B2B);
-            color: white;
+            background: linear-gradient(45deg, #00ffea, #ff00ff);
+            color: #0a0a0a;
             border: none;
-            padding: 15px 30px;
+            padding: 15px 35px;
             font-size: 18px;
-            border-radius: 50px;
-            margin: 10px;
+            border-radius: 8px;
+            margin: 15px;
             cursor: pointer;
             font-weight: bold;
-            box-shadow: 0 4px 15px rgba(255,75,43,0.4);
+            font-family: 'Courier New', monospace;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 234, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
             transition: all 0.3s ease;
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
         
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255,75,43,0.6);
+            box-shadow: 
+                0 0 30px rgba(0, 255, 234, 0.8),
+                0 0 40px rgba(255, 0, 255, 0.5);
+            animation: pulse 0.5s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
         
         #final-score {
-            font-size: 48px;
+            font-size: 52px;
             font-weight: bold;
-            color: #f8e71c;
-            margin: 20px 0;
+            color: #ff00ff;
+            margin: 25px 0;
+            text-shadow: 
+                0 0 20px #ff00ff,
+                0 0 40px #ff00ff;
         }
         
         .instructions {
             text-align: center;
-            margin: 15px 0;
+            margin: 20px 0;
             font-size: 16px;
-            opacity: 0.9;
+            color: #00ffea;
+            line-height: 1.5;
+            max-width: 80%;
         }
         
-        .difficulty-info {
-            font-size: 14px;
+        .cyber-border {
+            border: 1px solid #00ffea;
+            padding: 20px;
+            margin: 20px;
+            box-shadow: 
+                inset 0 0 20px rgba(0, 255, 234, 0.2),
+                0 0 20px rgba(0, 255, 234, 0.3);
+            border-radius: 10px;
+            position: relative;
+        }
+        
+        .cyber-border::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 1px solid #ff00ff;
+            border-radius: 12px;
             opacity: 0.7;
-            margin-top: 10px;
+        }
+        
+        #energy-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 150px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid #00ffea;
+        }
+        
+        #energy-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, #00ffea, #ff00ff);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px #00ffea;
         }
     </style>
 </head>
@@ -115,42 +211,48 @@
     <div id="game-container">
         <canvas id="gameCanvas" width="320" height="480"></canvas>
         <div id="score">0</div>
+        <div id="level">УРОВЕНЬ: 1</div>
+        <div id="energy-bar">
+            <div id="energy-fill"></div>
+        </div>
         
         <div id="start-screen">
-            <h1>🐦 Flappy Bird</h1>
-            <p class="instructions">Нажимай, чтобы лететь!</p>
-            <p class="difficulty-info">Исправленная физика - теперь летает плавно!</p>
-            <button id="start-button">НАЧАТЬ ИГРУ</button>
+            <div class="cyber-border">
+                <h1>ПТИЧКА-ОЧЕРЕДНЯРА</h1>
+                <div class="subtitle">КИБЕРПАНК 2077</div>
+                <p class="instructions">НАВИГАЦИЯ ЧЕРЕЗ ЛАЗЕРНЫЕ БАРЬЕРЫ<br>ТАПАЙ ДЛЯ УСКОРЕНИЯ</p>
+                <button id="start-button">ЗАПУСК СИСТЕМЫ</button>
+            </div>
         </div>
         
         <div id="game-over-screen">
-            <h1>Игра Окончена!</h1>
-            <div id="final-score">0</div>
-            <button id="restart-button">ИГРАТЬ СНОВА</button>
+            <div class="cyber-border">
+                <h1>СИСТЕМНЫЙ СБОЙ</h1>
+                <div id="final-score">0</div>
+                <p class="instructions">ПРОТОКОЛ БАРЬЕРА НАРУШЕН</p>
+                <button id="restart-button">ПЕРЕЗАГРУЗКА</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // === ИСПРАВЛЕННАЯ КОНФИГУРАЦИЯ ФИЗИКИ ===
-        // Анализ оригинальной Flappy Bird показал:
-        // - Гравитация: 0.4-0.6 (было 0.8 - слишком много)
-        // - Сила прыжка: -8 до -10 (было -12 - слишком сильно)
-        // - Более плавное управление
-        
+        // === КИБЕРПАНК КОНФИГУРАЦИЯ ===
         const config = {
-            gravity: 0.5,        // Уменьшил гравитацию для плавного падения
-            jumpForce: -9,       // Уменьшил силу прыжка для лучшего контроля
-            pipeSpeed: 2.2,      // Чуть увеличил скорость труб для баланса
-            pipeGap: 150,
-            pipeWidth: 60,
-            pipeInterval: 1600,  // Увеличил интервал между трубами
-            rotationSpeed: 0.04  // Замедлил вращение для плавности
+            gravity: 0.5,
+            jumpForce: -9,
+            pipeSpeed: 2.5,
+            pipeGap: 160,
+            pipeWidth: 70,
+            pipeInterval: 1700,
+            rotationSpeed: 0.04
         };
 
         // === ЭЛЕМЕНТЫ DOM ===
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
+        const levelElement = document.getElementById('level');
+        const energyFill = document.getElementById('energy-fill');
         const startScreen = document.getElementById('start-screen');
         const gameOverScreen = document.getElementById('game-over-screen');
         const finalScoreElement = document.getElementById('final-score');
@@ -164,167 +266,277 @@
         let bird = {};
         let pipes = [];
         let lastPipeTime = 0;
+        let energy = 100;
+        let level = 1;
+        let particles = [];
 
-        // === ИНИЦИАЛИЗАЦИЯ ПТИЦЫ ===
+        // === КИБЕРПАНК ЦВЕТА ===
+        const colors = {
+            primary: '#00ffea',
+            secondary: '#ff00ff',
+            background: '#0a0a0a',
+            grid: '#00ffea',
+            laser: '#ff0000',
+            energy: '#00ff00'
+        };
+
+        // === ИНИЦИАЛИЗАЦИЯ РОБОТА-ПТИЦЫ ===
         function initBird() {
             bird = {
-                x: 60,  // Отодвинул от края для лучшего обзора
+                x: 80,
                 y: canvas.height / 2 - 20,
-                width: 34,
-                height: 24,
+                width: 40,
+                height: 30,
                 velocity: 0,
                 rotation: 0,
-                jumpCooldown: 0  // Защита от спама прыжками
+                jumpCooldown: 0,
+                thrusters: false,
+                energy: 100
             };
         }
 
-        // === ОПТИМИЗИРОВАННОЕ СОЗДАНИЕ ТРУБ ===
+        // === ОПТИМИЗИРОВАННОЕ СОЗДАНИЕ ЛАЗЕРНЫХ БАРЬЕРОВ ===
         function createPipe() {
-            const minHeight = 70;  // Увеличил минимальную высоту
+            const minHeight = 80;
             const maxHeight = canvas.height - config.pipeGap - minHeight;
             const height = Math.random() * (maxHeight - minHeight) + minHeight;
             
+            // Создаем только одну пару барьеров с уникальным ID
+            const pipeId = Date.now();
+            
             pipes.push({
+                id: pipeId,
                 x: canvas.width,
                 y: 0,
                 width: config.pipeWidth,
                 height: height,
-                passed: false
+                passed: false,
+                type: 'top'
             }, {
+                id: pipeId,
                 x: canvas.width,
                 y: height + config.pipeGap,
                 width: config.pipeWidth,
                 height: canvas.height - height - config.pipeGap,
-                passed: false
+                passed: false,
+                type: 'bottom'
             });
         }
 
-        // === УЛУЧШЕННАЯ ОТРИСОВКА ПТИЦЫ ===
+        // === СИСТЕМА ЧАСТИЦ ДЛЯ ЭФФЕКТОВ ===
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    size: Math.random() * 3 + 1,
+                    speedX: Math.random() * 6 - 3,
+                    speedY: Math.random() * 6 - 3,
+                    color: color,
+                    life: 30
+                });
+            }
+        }
+
+        // === ОБНОВЛЕНИЕ ЧАСТИЦ ===
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.speedX;
+                p.y += p.speedY;
+                p.life--;
+                
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        // === ОТРИСОВКА ЧАСТИЦ ===
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life / 30;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // === ОТРИСОВКА РОБОТА-ПТИЦЫ ===
         function drawBird() {
             ctx.save();
             ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
             
-            // Плавное вращение в зависимости от скорости
+            // Плавное вращение
             let targetRotation = Math.max(-0.7, Math.min(0.5, bird.velocity * config.rotationSpeed));
-            bird.rotation += (targetRotation - bird.rotation) * 0.1; // Плавная интерполяция
+            bird.rotation += (targetRotation - bird.rotation) * 0.1;
             ctx.rotate(bird.rotation);
             
-            // Тело птицы (более округлая форма)
-            ctx.fillStyle = '#FFD700';
+            // Корпус робота (основной)
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(-bird.width / 2, -bird.height / 2, bird.width, bird.height);
+            
+            // Киберимпланты/светящиеся элементы
+            ctx.fillStyle = colors.primary;
+            ctx.fillRect(-bird.width / 2 + 5, -bird.height / 2 + 5, 4, bird.height - 10);
+            ctx.fillRect(bird.width / 2 - 9, -bird.height / 2 + 5, 4, bird.height - 10);
+            
+            // "Глаз" сенсора
+            ctx.fillStyle = colors.secondary;
             ctx.beginPath();
-            ctx.ellipse(0, 0, bird.width / 2, bird.height / 2, 0, 0, Math.PI * 2);
+            ctx.arc(bird.width / 4, -bird.height / 6, 6, 0, Math.PI * 2);
             ctx.fill();
             
-            // Крыло с анимацией
-            ctx.fillStyle = '#FFA500';
+            ctx.fillStyle = '#ffffff';
             ctx.beginPath();
-            let wingOffset = Math.sin(frames * 0.2) * 2; // Легкая анимация крыла
-            ctx.ellipse(-bird.width / 4, wingOffset, bird.width / 3, bird.height / 2, 0, 0, Math.PI * 2);
+            ctx.arc(bird.width / 4 + 1, -bird.height / 6 - 1, 2, 0, Math.PI * 2);
             ctx.fill();
             
-            // Глаз
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.arc(bird.width / 3, -bird.height / 4, 5, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.fillStyle = 'black';
-            ctx.beginPath();
-            ctx.arc(bird.width / 3 + 1, -bird.height / 4, 2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Клюв
-            ctx.fillStyle = '#FF8C00';
-            ctx.beginPath();
-            ctx.moveTo(bird.width / 2.5, 0);
-            ctx.lineTo(bird.width / 2, -3);
-            ctx.lineTo(bird.width / 2, 3);
-            ctx.closePath();
-            ctx.fill();
+            // Реактивные двигатели
+            if (bird.thrusters || bird.velocity > 0) {
+                const thrustSize = Math.abs(bird.velocity) * 0.5 + 5;
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath();
+                ctx.arc(-bird.width / 2, bird.height / 4, thrustSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                createParticles(-bird.width / 2, bird.height / 4, '#ff4400', 2);
+            }
             
             ctx.restore();
         }
 
-        // === ОТРИСОВКА ТРУБ ===
+        // === ОТРИСОВКА ЛАЗЕРНЫХ БАРЬЕРОВ ===
         function drawPipes() {
-            ctx.fillStyle = '#73BF2E';
-            
             pipes.forEach(pipe => {
-                // Основная часть трубы
+                // Основной барьер
+                const gradient = ctx.createLinearGradient(pipe.x, pipe.y, pipe.x + pipe.width, pipe.y + pipe.height);
+                gradient.addColorStop(0, '#00ffea');
+                gradient.addColorStop(0.5, '#ffffff');
+                gradient.addColorStop(1, '#00ffea');
+                
+                ctx.fillStyle = gradient;
                 ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
                 
-                // Шляпка трубы (более детальная)
-                ctx.fillStyle = '#5A9C23';
-                ctx.fillRect(pipe.x - 3, pipe.y, pipe.width + 6, 25);
-                ctx.fillRect(pipe.x - 3, pipe.y + pipe.height - 25, pipe.width + 6, 25);
+                // Лазерная сетка внутри барьера
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 1;
                 
-                // Световой блик на трубах
-                ctx.fillStyle = '#8CD936';
-                ctx.fillRect(pipe.x + pipe.width - 15, pipe.y + 5, 8, pipe.height - 10);
+                // Вертикальные линии
+                for (let i = pipe.x + 5; i < pipe.x + pipe.width; i += 10) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, pipe.y);
+                    ctx.lineTo(i, pipe.y + pipe.height);
+                    ctx.stroke();
+                }
                 
-                ctx.fillStyle = '#73BF2E';
+                // Горизонтальные линии
+                for (let i = pipe.y + 5; i < pipe.y + pipe.height; i += 10) {
+                    ctx.beginPath();
+                    ctx.moveTo(pipe.x, i);
+                    ctx.lineTo(pipe.x + pipe.width, i);
+                    ctx.stroke();
+                }
+                
+                // Энергетическое поле вокруг барьера
+                ctx.strokeStyle = colors.primary;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(pipe.x - 2, pipe.y - 2, pipe.width + 4, pipe.height + 4);
+                
+                // Анимация энергии
+                if (Math.sin(frames * 0.1) > 0) {
+                    ctx.strokeStyle = colors.secondary;
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(pipe.x - 1, pipe.y - 1, pipe.width + 2, pipe.height + 2);
+                }
             });
         }
 
-        // === ОТРИСОВКА ФОНА ===
+        // === ОТРИСОВКА КИБЕРПАНК ФОНА ===
         function drawBackground() {
-            // Небо с градиентом
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            gradient.addColorStop(0, '#70c5ce');
-            gradient.addColorStop(1, '#4a9db9');
-            ctx.fillStyle = gradient;
+            // Основной фон
+            ctx.fillStyle = colors.background;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Облака (декор)
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-            for (let i = 0; i < 3; i++) {
-                let x = (frames * 0.5 + i * 120) % (canvas.width + 100) - 50;
+            // Сетка киберпространства
+            ctx.strokeStyle = 'rgba(0, 255, 234, 0.1)';
+            ctx.lineWidth = 1;
+            
+            // Вертикальные линии сетки
+            for (let x = 0; x < canvas.width; x += 40) {
+                const offset = (frames * 0.5) % 40;
                 ctx.beginPath();
-                ctx.arc(x, 60 + i * 40, 20, 0, Math.PI * 2);
-                ctx.arc(x + 15, 50 + i * 40, 25, 0, Math.PI * 2);
-                ctx.arc(x + 35, 55 + i * 40, 18, 0, Math.PI * 2);
+                ctx.moveTo(x - offset, 0);
+                ctx.lineTo(x - offset, canvas.height);
+                ctx.stroke();
+            }
+            
+            // Горизонтальные линии сетки
+            for (let y = 0; y < canvas.height; y += 40) {
+                const offset = (frames * 0.3) % 40;
+                ctx.beginPath();
+                ctx.moveTo(0, y - offset);
+                ctx.lineTo(canvas.width, y - offset);
+                ctx.stroke();
+            }
+            
+            // Плавающие точки данных
+            ctx.fillStyle = colors.primary;
+            for (let i = 0; i < 5; i++) {
+                const x = (frames * 2 + i * 50) % (canvas.width + 50) - 25;
+                const y = Math.sin(frames * 0.02 + i) * 50 + canvas.height / 2;
+                ctx.beginPath();
+                ctx.arc(x, y, 1, 0, Math.PI * 2);
                 ctx.fill();
             }
             
-            // Земля
-            ctx.fillStyle = '#DED895';
-            ctx.fillRect(0, canvas.height - 25, canvas.width, 25);
+            // Пол киберпространства
+            ctx.fillStyle = 'rgba(20, 20, 30, 0.8)';
+            ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
             
-            // Трава
-            ctx.fillStyle = '#73BF2E';
-            ctx.fillRect(0, canvas.height - 25, canvas.width, 8);
-            
-            // Детали травы
-            ctx.strokeStyle = '#5A9C23';
-            ctx.lineWidth = 2;
-            for (let i = 0; i < canvas.width; i += 8) {
+            // Неоновые линии на полу
+            ctx.strokeStyle = colors.primary;
+            ctx.lineWidth = 3;
+            for (let i = 0; i < canvas.width; i += 30) {
+                const pulse = Math.sin(frames * 0.05 + i * 0.1) * 0.5 + 0.5;
+                ctx.globalAlpha = pulse * 0.5;
                 ctx.beginPath();
-                ctx.moveTo(i, canvas.height - 17);
-                ctx.lineTo(i + 4, canvas.height - 25);
+                ctx.moveTo(i, canvas.height - 30);
+                ctx.lineTo(i + 15, canvas.height - 15);
                 ctx.stroke();
             }
+            ctx.globalAlpha = 1;
         }
 
-        // === ОБНОВЛЕНИЕ ПТИЦЫ (ИСПРАВЛЕННАЯ ФИЗИКА) ===
+        // === ОБНОВЛЕНИЕ РОБОТА-ПТИЦЫ ===
         function updateBird() {
-            // Применяем гравитацию (уменьшенную)
             bird.velocity += config.gravity;
             
-            // Ограничиваем максимальную скорость падения
             if (bird.velocity > 12) {
                 bird.velocity = 12;
             }
             
             bird.y += bird.velocity;
             
-            // Кулдаун для прыжков
             if (bird.jumpCooldown > 0) {
                 bird.jumpCooldown--;
             }
             
-            // Столкновение с землей
-            if (bird.y + bird.height >= canvas.height - 25) {
-                bird.y = canvas.height - 25 - bird.height;
+            // Энергия восстанавливается со временем
+            if (bird.energy < 100) {
+                bird.energy += 0.2;
+                updateEnergyBar();
+            }
+            
+            // Индикаторы двигателей
+            bird.thrusters = bird.velocity < 0;
+            
+            // Столкновение с полом
+            if (bird.y + bird.height >= canvas.height - 30) {
+                bird.y = canvas.height - 30 - bird.height;
+                createParticles(bird.x, bird.y + bird.height, colors.secondary, 20);
                 gameOver();
             }
             
@@ -332,48 +544,68 @@
             if (bird.y <= 0) {
                 bird.y = 0;
                 bird.velocity = 0;
+                createParticles(bird.x, 0, colors.primary, 10);
             }
         }
 
-        // === ОБНОВЛЕНИЕ ТРУБ ===
+        // === ОБНОВЛЕНИЕ БАРЬЕРОВ ===
         function updatePipes() {
             const currentTime = Date.now();
             
-            // Создаем новые трубы по времени, а не по кадрам
             if (gameActive && currentTime - lastPipeTime > config.pipeInterval) {
                 createPipe();
                 lastPipeTime = currentTime;
             }
             
-            // Удаляем трубы за экраном
+            // Удаляем барьеры за экраном
             pipes = pipes.filter(pipe => pipe.x + pipe.width > -50);
             
-            // Двигаем трубы
+            // Двигаем барьеры
             pipes.forEach(pipe => {
                 pipe.x -= config.pipeSpeed;
                 
-                // Проверяем, прошла ли птица трубу
+                // ИСПРАВЛЕНИЕ: Добавляем очко только за пару барьеров
                 if (!pipe.passed && pipe.x + pipe.width < bird.x) {
                     pipe.passed = true;
-                    score++;
-                    scoreElement.textContent = score;
                     
-                    // Вибрация (если поддерживается)
-                    if (navigator.vibrate) {
-                        navigator.vibrate(30); // Более короткая вибрация
+                    // Добавляем очко только для верхнего барьера (чтобы не дублировать)
+                    if (pipe.type === 'top') {
+                        score++;
+                        scoreElement.textContent = score;
+                        
+                        // Обновляем уровень каждые 5 очков
+                        level = Math.floor(score / 5) + 1;
+                        levelElement.textContent = `УРОВЕНЬ: ${level}`;
+                        
+                        // Вибрация
+                        if (navigator.vibrate) {
+                            navigator.vibrate(30);
+                        }
+                        
+                        // Эффект частиц
+                        createParticles(pipe.x + pipe.width, pipe.y + pipe.height / 2, colors.primary, 10);
                     }
                 }
                 
-                // Проверка столкновения (более щадящая)
+                // ПРОВЕРКА СТОЛКНОВЕНИЯ - ЧЕТКИЕ ГРАНИЦЫ
                 if (
-                    bird.x + bird.width * 0.7 > pipe.x &&  // Уменьшил зону столкновения
-                    bird.x < pipe.x + pipe.width * 0.8 &&
-                    bird.y + bird.height * 0.7 > pipe.y &&
-                    bird.y < pipe.y + pipe.height * 0.8
+                    bird.x < pipe.x + pipe.width &&
+                    bird.x + bird.width > pipe.x &&
+                    bird.y < pipe.y + pipe.height &&
+                    bird.y + bird.height > pipe.y
                 ) {
+                    createParticles(bird.x + bird.width / 2, bird.y + bird.height / 2, colors.laser, 30);
                     gameOver();
                 }
             });
+        }
+
+        // === ОБНОВЛЕНИЕ ПОЛОСЫ ЭНЕРГИИ ===
+        function updateEnergyBar() {
+            energyFill.style.width = bird.energy + '%';
+            energyFill.style.background = bird.energy > 30 ? 
+                'linear-gradient(90deg, #00ffea, #ff00ff)' : 
+                'linear-gradient(90deg, #ff0000, #ff4400)';
         }
 
         // === ИГРОВОЙ ЦИКЛ ===
@@ -382,55 +614,60 @@
             
             frames++;
             
-            // Очистка canvas
             drawBackground();
-            
-            // Обновление и отрисовка
             updateBird();
             updatePipes();
+            updateParticles();
             drawPipes();
             drawBird();
+            drawParticles();
             
             requestAnimationFrame(gameLoop);
         }
 
-        // === НАЧАЛО ИГРЫ ===
+        // === ЗАПУСК СИСТЕМЫ ===
         function startGame() {
             initBird();
             pipes = [];
+            particles = [];
             score = 0;
+            level = 1;
             frames = 0;
             lastPipeTime = Date.now();
             scoreElement.textContent = score;
+            levelElement.textContent = `УРОВЕНЬ: ${level}`;
             gameActive = true;
             startScreen.style.display = 'none';
             gameOverScreen.style.display = 'none';
+            updateEnergyBar();
             gameLoop();
         }
 
-        // === КОНЕЦ ИГРЫ ===
+        // === СИСТЕМНЫЙ СБОЙ ===
         function gameOver() {
             gameActive = false;
             finalScoreElement.textContent = score;
             gameOverScreen.style.display = 'flex';
             
-            // Вибрация при проигрыше
             if (navigator.vibrate) {
-                navigator.vibrate([80, 40, 80]);
+                navigator.vibrate([100, 50, 100]);
             }
         }
 
-        // === ОБРАБОТЧИКИ СОБЫТИЙ ===
+        // === КИБЕРПАНК УПРАВЛЕНИЕ ===
+        function handleJump() {
+            if (gameActive && bird.jumpCooldown === 0 && bird.energy > 10) {
+                bird.velocity = config.jumpForce;
+                bird.jumpCooldown = 8;
+                bird.energy -= 10; // Тратим энергию на прыжок
+                updateEnergyBar();
+                createParticles(bird.x, bird.y + bird.height, colors.primary, 5);
+            }
+        }
+
+        // Обработчики событий
         startButton.addEventListener('click', startGame);
         restartButton.addEventListener('click', startGame);
-
-        // Прыжок при клике или тапе
-        function handleJump() {
-            if (gameActive && bird.jumpCooldown === 0) {
-                bird.velocity = config.jumpForce;
-                bird.jumpCooldown = 8; // Защита от спама
-            }
-        }
 
         canvas.addEventListener('click', handleJump);
         canvas.addEventListener('touchstart', function(e) {
@@ -438,7 +675,6 @@
             handleJump();
         });
 
-        // Прыжок при нажатии пробела
         document.addEventListener('keydown', function(e) {
             if ((e.code === 'Space' || e.code === 'ArrowUp') && gameActive) {
                 handleJump();
@@ -446,21 +682,11 @@
             }
         });
 
-        // === АДАПТАЦИЯ ПОД TELEGRAM ===
-        function initTelegramFeatures() {
-            // Проверяем, запущено ли в Telegram
-            if (window.Telegram && window.Telegram.WebApp) {
-                console.log('Running in Telegram Web App');
-                // Здесь будет интеграция с Telegram Web App
-            }
-        }
-
-        // Инициализация при загрузке
+        // === ИНИЦИАЛИЗАЦИЯ ===
         initBird();
-        initTelegramFeatures();
+        updateEnergyBar();
         
-        console.log('Flappy Bird с исправленной физикой загружен!');
-        console.log('Настройки физики:', config);
+        console.log('🚀 Птичка-Очередняра: Киберпанк система активирована!');
     </script>
 </body>
 </html>
