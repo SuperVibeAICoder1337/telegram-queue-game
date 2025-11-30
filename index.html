@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Птичка Очередняра</title>
+    <title>ПТИЧКА ОЧЕРЕДНЯРА</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         * {
@@ -12,7 +12,7 @@
         
         body {
             font-family: 'Courier New', monospace;
-            background: #000;
+            background: #0a0a0a;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -44,33 +44,13 @@
             z-index: 10;
         }
         
-        #energy-container {
+        #mode-indicator {
             position: absolute;
             top: 15px;
             right: 15px;
-            width: 100px;
-            height: 20px;
-            background: rgba(0, 255, 234, 0.2);
-            border: 1px solid #00ffea;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        #energy-bar {
-            height: 100%;
-            width: 100%;
-            background: linear-gradient(90deg, #00ffea, #ff00ff);
-            border-radius: 10px;
-            transition: width 0.3s ease;
-        }
-        
-        #ability-indicator {
-            position: absolute;
-            bottom: 15px;
-            left: 15px;
-            color: #00ffea;
             font-size: 14px;
-            opacity: 0.7;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
         }
         
         #start-screen, #game-over-screen {
@@ -83,8 +63,9 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(10, 10, 20, 0.95);
             z-index: 20;
+            text-align: center;
         }
         
         #game-over-screen {
@@ -112,6 +93,7 @@
             text-align: center;
             line-height: 1.4;
             opacity: 0.8;
+            max-width: 80%;
         }
         
         button {
@@ -123,7 +105,6 @@
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
-            font-family: 'Courier New', monospace;
             box-shadow: 0 0 15px #00ffea;
             transition: all 0.3s ease;
             margin-top: 10px;
@@ -146,10 +127,7 @@
     <div id="game-container">
         <canvas id="gameCanvas" width="320" height="480"></canvas>
         <div id="score">0</div>
-        <div id="energy-container">
-            <div id="energy-bar"></div>
-        </div>
-        <div id="ability-indicator">ТУРБО: ОТКЛ</div>
+        <div id="mode-indicator">РЕЖИМ: КЛАССИКА</div>
         
         <div id="start-screen">
             <div class="title">
@@ -157,9 +135,9 @@
                 <span class="title-line">ОЧЕРЕДНЯРА</span>
             </div>
             <div class="instructions">
-                КЛИК - прыжок (10 энергии)<br>
-                5 прыжков = ТУРБО-РЕЖИМ!<br>
-                ТУРБО проходит сквозь барьеры!
+                КЛИК - прыжок<br>
+                Каждые 10 очков режим меняется!<br>
+                КЛАССИКА → БАСКЕТБОЛ → ГОНКА
             </div>
             <button id="start-button">СТАРТ</button>
         </div>
@@ -171,7 +149,7 @@
     </div>
 
     <script>
-        // === КОНФИГУРАЦИЯ ===
+        // === УСЛОЖНЕННАЯ КОНФИГУРАЦИЯ ===
         const config = {
             gravity: 0.5,
             jumpForce: -9,
@@ -186,8 +164,7 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
-        const energyBar = document.getElementById('energy-bar');
-        const abilityIndicator = document.getElementById('ability-indicator');
+        const modeIndicator = document.getElementById('mode-indicator');
         const startScreen = document.getElementById('start-screen');
         const gameOverScreen = document.getElementById('game-over-screen');
         const finalScoreElement = document.getElementById('final-score');
@@ -201,10 +178,10 @@
         let bird = {};
         let pipes = [];
         let lastPipeTime = 0;
-        let energy = 100;
-        let jumpCount = 0;
-        let turboActive = false;
-        let turboFrames = 0;
+        let gameMode = 'classic'; // 'classic', 'basketball', 'race'
+        let basketballs = [];
+        let raceTargets = [];
+        let pipesPassed = 0;
 
         // === ИНИЦИАЛИЗАЦИЯ ПТИЦЫ ===
         function initBird() {
@@ -216,8 +193,37 @@
                 velocity: 0,
                 rotation: 0,
                 jumpCooldown: 0,
-                invincible: false
+                color: '#00ffea'
             };
+        }
+
+        // === СМЕНА РЕЖИМА ИГРЫ ===
+        function changeGameMode() {
+            const modes = ['classic', 'basketball', 'race'];
+            const currentIndex = modes.indexOf(gameMode);
+            gameMode = modes[(currentIndex + 1) % modes.length];
+            
+            // Очищаем специфичные для режима объекты
+            basketballs = [];
+            raceTargets = [];
+            
+            // Меняем индикатор и цвет птицы
+            switch(gameMode) {
+                case 'classic':
+                    modeIndicator.textContent = 'РЕЖИМ: КЛАССИКА';
+                    bird.color = '#00ffea';
+                    break;
+                case 'basketball':
+                    modeIndicator.textContent = 'РЕЖИМ: БАСКЕТБОЛ';
+                    bird.color = '#ff00ff';
+                    createBasketballHoops();
+                    break;
+                case 'race':
+                    modeIndicator.textContent = 'РЕЖИМ: ГОНКА';
+                    bird.color = '#ffff00';
+                    createRaceTargets();
+                    break;
+            }
         }
 
         // === СОЗДАНИЕ БАРЬЕРОВ ===
@@ -247,6 +253,31 @@
             });
         }
 
+        // === БАСКЕТБОЛЬНЫЕ КОЛЬЦА (вдохновлено новой версией Flappy Bird[citation:1][citation:4]) ===
+        function createBasketballHoops() {
+            basketballs.push({
+                x: canvas.width,
+                y: Math.random() * (canvas.height - 100) + 50,
+                width: 60,
+                height: 40,
+                passed: false
+            });
+        }
+
+        // === ЦЕЛИ ДЛЯ РЕЖИМА ГОНКИ ===
+        function createRaceTargets() {
+            for (let i = 0; i < 3; i++) {
+                raceTargets.push({
+                    x: canvas.width + i * 200,
+                    y: Math.random() * (canvas.height - 100) + 50,
+                    width: 30,
+                    height: 30,
+                    collected: false,
+                    color: '#ffff00'
+                });
+            }
+        }
+
         // === ОТРИСОВКА ПТИЦЫ ===
         function drawBird() {
             ctx.save();
@@ -256,21 +287,14 @@
             bird.rotation += (targetRotation - bird.rotation) * 0.1;
             ctx.rotate(bird.rotation);
             
-            // Меняем цвет в турбо-режиме
-            if (turboActive) {
-                ctx.fillStyle = frames % 10 < 5 ? '#ff00ff' : '#00ffea';
-            } else {
-                ctx.fillStyle = '#00ffea';
-            }
-            
+            ctx.fillStyle = bird.color;
             ctx.fillRect(-bird.width / 2, -bird.height / 2, bird.width, bird.height);
             
-            // Детали
             ctx.fillStyle = '#000';
             ctx.fillRect(-bird.width / 2 + 5, -bird.height / 2 + 5, 4, bird.height - 10);
             ctx.fillRect(bird.width / 2 - 9, -bird.height / 2 + 5, 4, bird.height - 10);
             
-            ctx.fillStyle = turboActive ? '#00ffea' : '#ff00ff';
+            ctx.fillStyle = gameMode === 'basketball' ? '#ff00ff' : '#ffff00';
             ctx.beginPath();
             ctx.arc(bird.width / 4, -bird.height / 6, 6, 0, Math.PI * 2);
             ctx.fill();
@@ -280,60 +304,65 @@
 
         // === ОТРИСОВКА БАРЬЕРОВ ===
         function drawPipes() {
+            ctx.fillStyle = '#00ffea';
+            
             pipes.forEach(pipe => {
-                // Барьеры становятся прозрачными в турбо-режиме
-                if (turboActive) {
-                    ctx.globalAlpha = 0.3;
-                }
-                
-                ctx.fillStyle = '#00ffea';
                 ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
                 
-                // Светящийся эффект
                 ctx.strokeStyle = '#ff00ff';
                 ctx.lineWidth = 2;
                 ctx.strokeRect(pipe.x - 1, pipe.y - 1, pipe.width + 2, pipe.height + 2);
+            });
+        }
+
+        // === ОТРИСОВКА БАСКЕТБОЛЬНЫХ КОЛЕЦ ===
+        function drawBasketballHoops() {
+            basketballs.forEach(hoop => {
+                // Кольцо
+                ctx.strokeStyle = '#ff00ff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(hoop.x, hoop.y, 20, 0, Math.PI * 2);
+                ctx.stroke();
                 
-                ctx.globalAlpha = 1;
+                // Щит
+                ctx.fillStyle = 'rgba(255, 0, 255, 0.3)';
+                ctx.fillRect(hoop.x - 30, hoop.y - 40, 10, 40);
+            });
+        }
+
+        // === ОТРИСОВКА ЦЕЛЕЙ ГОНКИ ===
+        function drawRaceTargets() {
+            raceTargets.forEach(target => {
+                if (!target.collected) {
+                    ctx.fillStyle = target.color;
+                    ctx.beginPath();
+                    ctx.arc(target.x, target.y, target.width / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
             });
         }
 
         // === ОТРИСОВКА ФОНА ===
         function drawBackground() {
-            // Черный фон
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Эффект турбо-режима
-            if (turboActive) {
-                ctx.fillStyle = frames % 10 < 5 ? 'rgba(255, 0, 255, 0.1)' : 'rgba(0, 255, 234, 0.1)';
+            // Визуальные индикаторы режима
+            if (gameMode === 'basketball') {
+                ctx.fillStyle = 'rgba(255, 0, 255, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else if (gameMode === 'race') {
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.05)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
             
-            // Простой пол
             ctx.fillStyle = '#00ffea';
             ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
-        }
-
-        // === ОБНОВЛЕНИЕ ЭНЕРГИИ ===
-        function updateEnergy() {
-            // Восстанавливаем энергию со временем
-            if (energy < 100) {
-                energy += 0.3;
-                if (energy > 100) energy = 100;
-            }
-            
-            // Обновляем полоску энергии
-            energyBar.style.width = energy + '%';
-            
-            // Меняем цвет в зависимости от уровня энергии
-            if (energy > 50) {
-                energyBar.style.background = 'linear-gradient(90deg, #00ffea, #ff00ff)';
-            } else if (energy > 20) {
-                energyBar.style.background = 'linear-gradient(90deg, #ffff00, #ffaa00)';
-            } else {
-                energyBar.style.background = 'linear-gradient(90deg, #ff0000, #ff4400)';
-            }
         }
 
         // === ОБНОВЛЕНИЕ ПТИЦЫ ===
@@ -350,12 +379,6 @@
                 bird.jumpCooldown--;
             }
             
-            // Обновляем энергию
-            updateEnergy();
-            
-            // Обновляем турбо-режим
-            updateTurbo();
-            
             if (bird.y + bird.height >= canvas.height - 20) {
                 bird.y = canvas.height - 20 - bird.height;
                 gameOver();
@@ -364,23 +387,6 @@
             if (bird.y <= 0) {
                 bird.y = 0;
                 bird.velocity = 0;
-            }
-        }
-
-        // === ОБНОВЛЕНИЕ ТУРБО-РЕЖИМА ===
-        function updateTurbo() {
-            if (turboActive) {
-                turboFrames--;
-                
-                // Индикатор турбо-режима
-                abilityIndicator.textContent = `ТУРБО: ${Math.ceil(turboFrames/60)}сек`;
-                abilityIndicator.style.opacity = '1';
-                
-                if (turboFrames <= 0) {
-                    turboActive = false;
-                    abilityIndicator.textContent = 'ТУРБО: ОТКЛ';
-                    abilityIndicator.style.opacity = '0.7';
-                }
             }
         }
 
@@ -402,8 +408,18 @@
                     pipe.passed = true;
                     
                     if (pipe.type === 'top') {
-                        score++;
-                        scoreElement.textContent = score;
+                        pipesPassed++;
+                        
+                        // Меняем режим каждые 3 пройденные трубы
+                        if (pipesPassed % 3 === 0) {
+                            changeGameMode();
+                        }
+                        
+                        // В классическом режиме даем очки за трубы
+                        if (gameMode === 'classic') {
+                            score++;
+                            scoreElement.textContent = score;
+                        }
                         
                         if (navigator.vibrate) {
                             navigator.vibrate(30);
@@ -411,8 +427,8 @@
                     }
                 }
                 
-                // В турбо-режиме игнорируем столкновения
-                if (!turboActive &&
+                // В режиме гонки столкновения не учитываются
+                if (gameMode !== 'race' &&
                     bird.x < pipe.x + pipe.width &&
                     bird.x + bird.width > pipe.x &&
                     bird.y < pipe.y + pipe.height &&
@@ -423,38 +439,61 @@
             });
         }
 
-        // === ОБРАБОТКА ПРЫЖКА ===
-        function handleJump() {
-            if (!gameActive || bird.jumpCooldown > 0) return;
+        // === ОБНОВЛЕНИЕ БАСКЕТБОЛА ===
+        function updateBasketball() {
+            basketballs = basketballs.filter(hoop => hoop.x > -50);
             
-            // Проверяем достаточно ли энергии
-            if (energy >= 10) {
-                bird.velocity = config.jumpForce;
-                bird.jumpCooldown = 8;
+            basketballs.forEach(hoop => {
+                hoop.x -= config.pipeSpeed;
                 
-                // Тратим энергию
-                energy -= 10;
+                // Проверка попадания в кольцо
+                const dx = bird.x - hoop.x;
+                const dy = bird.y - hoop.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Считаем прыжки для активации турбо
-                jumpCount++;
-                
-                if (jumpCount >= 5) {
-                    activateTurbo();
-                    jumpCount = 0;
+                if (!hoop.passed && distance < 25) {
+                    hoop.passed = true;
+                    score += 3; // Бонус за бросок
+                    scoreElement.textContent = score;
+                    
+                    if (navigator.vibrate) {
+                        navigator.vibrate(100);
+                    }
                 }
+            });
+            
+            // Создаем новые кольца
+            if (frames % 120 === 0) {
+                createBasketballHoops();
             }
         }
 
-        // === АКТИВАЦИЯ ТУРБО-РЕЖИМА ===
-        function activateTurbo() {
-            turboActive = true;
-            turboFrames = 180; // 3 секунды при 60fps
-            abilityIndicator.textContent = 'ТУРБО: АКТИВ!';
-            abilityIndicator.style.opacity = '1';
+        // === ОБНОВЛЕНИЕ РЕЖИМА ГОНКИ ===
+        function updateRace() {
+            let allCollected = true;
             
-            // Вибрация при активации турбо
-            if (navigator.vibrate) {
-                navigator.vibrate(200);
+            raceTargets.forEach(target => {
+                if (!target.collected) {
+                    target.x -= config.pipeSpeed + 1; // Чуть быстрее труб
+                    
+                    // Проверка сбора цели
+                    const dx = bird.x - target.x;
+                    const dy = bird.y - target.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 25) {
+                        target.collected = true;
+                        score += 2; // Бонус за сбор
+                        scoreElement.textContent = score;
+                    } else {
+                        allCollected = false;
+                    }
+                }
+            });
+            
+            // Если все цели собраны, создаем новые
+            if (allCollected) {
+                createRaceTargets();
             }
         }
 
@@ -467,6 +506,16 @@
             drawBackground();
             updateBird();
             updatePipes();
+            
+            // Обновляем специфичную для режима логику
+            if (gameMode === 'basketball') {
+                updateBasketball();
+                drawBasketballHoops();
+            } else if (gameMode === 'race') {
+                updateRace();
+                drawRaceTargets();
+            }
+            
             drawPipes();
             drawBird();
             
@@ -477,16 +526,15 @@
         function startGame() {
             initBird();
             pipes = [];
+            basketballs = [];
+            raceTargets = [];
             score = 0;
-            energy = 100;
-            jumpCount = 0;
-            turboActive = false;
+            pipesPassed = 0;
             frames = 0;
+            gameMode = 'classic';
             lastPipeTime = Date.now();
             scoreElement.textContent = score;
-            energyBar.style.width = '100%';
-            abilityIndicator.textContent = 'ТУРБО: ОТКЛ';
-            abilityIndicator.style.opacity = '0.7';
+            modeIndicator.textContent = 'РЕЖИМ: КЛАССИКА';
             gameActive = true;
             startScreen.style.display = 'none';
             gameOverScreen.style.display = 'none';
@@ -508,6 +556,13 @@
         startButton.addEventListener('click', startGame);
         restartButton.addEventListener('click', startGame);
 
+        function handleJump() {
+            if (gameActive && bird.jumpCooldown === 0) {
+                bird.velocity = config.jumpForce;
+                bird.jumpCooldown = 8;
+            }
+        }
+
         canvas.addEventListener('click', handleJump);
         canvas.addEventListener('touchstart', function(e) {
             e.preventDefault();
@@ -524,7 +579,7 @@
         // === ИНИЦИАЛИЗАЦИЯ ===
         initBird();
         
-        console.log('Игра с новой механикой загружена!');
+        console.log('Усложненная версия игры загружена!');
     </script>
 </body>
 </html>
