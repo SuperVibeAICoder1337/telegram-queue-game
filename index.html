@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flappy Bird Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB, #1E90FF);
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            position: relative;
+        }
+        canvas {
+            border: 2px solid #333;
+            background: #87CEEB;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="320" height="480"></canvas>
+        <div id="score">0</div>
+    </div>
+
+    <script>
+        // Здесь будет код игры
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        
+        let score = 0;
+        
+        // Пока просто показываем начальный экран
+        ctx.fillStyle = '#333';
+        ctx.font = '20px Arial';
+        ctx.fillText('Flappy Bird Game', 80, 200);
+        ctx.font = '14px Arial';
+        ctx.fillText('Нажми для начала игры', 90, 230);
+        
+        canvas.addEventListener('click', function() {
+            alert('Игра скоро будет здесь! 🎮');
+            score++;
+            scoreElement.textContent = score;
+        });
+    </script>
+</body>
+</html>
