@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Птичка-Очередняра - Киберпанк</title>
+    <title>Птичка Очередняра</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         * {
@@ -12,53 +12,35 @@
         
         body {
             font-family: 'Courier New', monospace;
-            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            background: #000;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             touch-action: manipulation;
             overflow: hidden;
-            color: #00ffea;
         }
         
         #game-container {
             position: relative;
-            box-shadow: 
-                0 0 50px #00ffea,
-                inset 0 0 20px rgba(0, 255, 234, 0.1);
-            border-radius: 15px;
-            overflow: hidden;
             border: 2px solid #00ffea;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 30px #00ffea;
         }
         
         canvas {
             display: block;
-            background: #0a0a0a;
+            background: #000;
         }
         
         #score {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 32px;
+            top: 15px;
+            left: 15px;
+            font-size: 28px;
             color: #00ffea;
             font-weight: bold;
-            text-shadow: 
-                0 0 10px #00ffea,
-                0 0 20px #00ffea;
-            z-index: 10;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 2px;
-        }
-        
-        #level {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 16px;
-            color: #ff00ff;
-            text-shadow: 0 0 10px #ff00ff;
             z-index: 10;
             font-family: 'Courier New', monospace;
         }
@@ -73,137 +55,52 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(10, 10, 20, 0.95);
-            color: #00ffea;
+            background: rgba(0, 0, 0, 0.9);
             z-index: 20;
-            text-align: center;
-            backdrop-filter: blur(5px);
         }
         
         #game-over-screen {
             display: none;
         }
         
-        h1 {
-            font-size: 42px;
-            margin-bottom: 20px;
-            text-align: center;
+        .title {
+            font-size: 32px;
             color: #00ffea;
-            text-shadow: 
-                0 0 20px #00ffea,
-                0 0 40px #00ffea;
             font-weight: bold;
-            letter-spacing: 3px;
-            animation: glow 2s ease-in-out infinite alternate;
+            text-align: center;
+            line-height: 1.2;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px #00ffea;
         }
         
-        @keyframes glow {
-            from { text-shadow: 0 0 20px #00ffea, 0 0 40px #00ffea; }
-            to { text-shadow: 0 0 30px #00ffea, 0 0 60px #00ffea, 0 0 80px #00ffea; }
-        }
-        
-        .subtitle {
-            color: #ff00ff;
-            font-size: 18px;
-            margin-bottom: 30px;
-            text-shadow: 0 0 10px #ff00ff;
-            letter-spacing: 1px;
+        .title-line {
+            display: block;
         }
         
         button {
-            background: linear-gradient(45deg, #00ffea, #ff00ff);
-            color: #0a0a0a;
+            background: #00ffea;
+            color: #000;
             border: none;
-            padding: 15px 35px;
-            font-size: 18px;
-            border-radius: 8px;
-            margin: 15px;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
             font-family: 'Courier New', monospace;
-            box-shadow: 
-                0 0 20px rgba(0, 255, 234, 0.5),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px #00ffea;
             transition: all 0.3s ease;
-            letter-spacing: 1px;
-            text-transform: uppercase;
         }
         
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 
-                0 0 30px rgba(0, 255, 234, 0.8),
-                0 0 40px rgba(255, 0, 255, 0.5);
-            animation: pulse 0.5s ease-in-out;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+            transform: scale(1.05);
+            box-shadow: 0 0 25px #00ffea;
         }
         
         #final-score {
-            font-size: 52px;
+            font-size: 48px;
             font-weight: bold;
-            color: #ff00ff;
-            margin: 25px 0;
-            text-shadow: 
-                0 0 20px #ff00ff,
-                0 0 40px #ff00ff;
-        }
-        
-        .instructions {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 16px;
             color: #00ffea;
-            line-height: 1.5;
-            max-width: 80%;
-        }
-        
-        .cyber-border {
-            border: 1px solid #00ffea;
-            padding: 20px;
-            margin: 20px;
-            box-shadow: 
-                inset 0 0 20px rgba(0, 255, 234, 0.2),
-                0 0 20px rgba(0, 255, 234, 0.3);
-            border-radius: 10px;
-            position: relative;
-        }
-        
-        .cyber-border::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            border: 1px solid #ff00ff;
-            border-radius: 12px;
-            opacity: 0.7;
-        }
-        
-        #energy-bar {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: 150px;
-            height: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            overflow: hidden;
-            border: 1px solid #00ffea;
-        }
-        
-        #energy-fill {
-            height: 100%;
-            width: 100%;
-            background: linear-gradient(90deg, #00ffea, #ff00ff);
-            border-radius: 5px;
-            transition: width 0.3s ease;
-            box-shadow: 0 0 10px #00ffea;
+            margin: 30px 0;
         }
     </style>
 </head>
@@ -211,32 +108,23 @@
     <div id="game-container">
         <canvas id="gameCanvas" width="320" height="480"></canvas>
         <div id="score">0</div>
-        <div id="level">УРОВЕНЬ: 1</div>
-        <div id="energy-bar">
-            <div id="energy-fill"></div>
-        </div>
         
         <div id="start-screen">
-            <div class="cyber-border">
-                <h1>ПТИЧКА-ОЧЕРЕДНЯРА</h1>
-                <div class="subtitle">КИБЕРПАНК 2077</div>
-                <p class="instructions">НАВИГАЦИЯ ЧЕРЕЗ ЛАЗЕРНЫЕ БАРЬЕРЫ<br>ТАПАЙ ДЛЯ УСКОРЕНИЯ</p>
-                <button id="start-button">ЗАПУСК СИСТЕМЫ</button>
+            <div class="title">
+                <span class="title-line">ПТИЧКА</span>
+                <span class="title-line">ОЧЕРЕДНЯРА</span>
             </div>
+            <button id="start-button">СТАРТ</button>
         </div>
         
         <div id="game-over-screen">
-            <div class="cyber-border">
-                <h1>СИСТЕМНЫЙ СБОЙ</h1>
-                <div id="final-score">0</div>
-                <p class="instructions">ПРОТОКОЛ БАРЬЕРА НАРУШЕН</p>
-                <button id="restart-button">ПЕРЕЗАГРУЗКА</button>
-            </div>
+            <div id="final-score">0</div>
+            <button id="restart-button">ЕЩЕ РАЗ</button>
         </div>
     </div>
 
     <script>
-        // === КИБЕРПАНК КОНФИГУРАЦИЯ ===
+        // === КОНФИГУРАЦИЯ ===
         const config = {
             gravity: 0.5,
             jumpForce: -9,
@@ -251,8 +139,6 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
-        const levelElement = document.getElementById('level');
-        const energyFill = document.getElementById('energy-fill');
         const startScreen = document.getElementById('start-screen');
         const gameOverScreen = document.getElementById('game-over-screen');
         const finalScoreElement = document.getElementById('final-score');
@@ -266,21 +152,8 @@
         let bird = {};
         let pipes = [];
         let lastPipeTime = 0;
-        let energy = 100;
-        let level = 1;
-        let particles = [];
 
-        // === КИБЕРПАНК ЦВЕТА ===
-        const colors = {
-            primary: '#00ffea',
-            secondary: '#ff00ff',
-            background: '#0a0a0a',
-            grid: '#00ffea',
-            laser: '#ff0000',
-            energy: '#00ff00'
-        };
-
-        // === ИНИЦИАЛИЗАЦИЯ РОБОТА-ПТИЦЫ ===
+        // === ИНИЦИАЛИЗАЦИЯ ПТИЦЫ ===
         function initBird() {
             bird = {
                 x: 80,
@@ -289,19 +162,16 @@
                 height: 30,
                 velocity: 0,
                 rotation: 0,
-                jumpCooldown: 0,
-                thrusters: false,
-                energy: 100
+                jumpCooldown: 0
             };
         }
 
-        // === ОПТИМИЗИРОВАННОЕ СОЗДАНИЕ ЛАЗЕРНЫХ БАРЬЕРОВ ===
+        // === СОЗДАНИЕ БАРЬЕРОВ ===
         function createPipe() {
             const minHeight = 80;
             const maxHeight = canvas.height - config.pipeGap - minHeight;
             const height = Math.random() * (maxHeight - minHeight) + minHeight;
             
-            // Создаем только одну пару барьеров с уникальным ID
             const pipeId = Date.now();
             
             pipes.push({
@@ -323,194 +193,58 @@
             });
         }
 
-        // === СИСТЕМА ЧАСТИЦ ДЛЯ ЭФФЕКТОВ ===
-        function createParticles(x, y, color, count) {
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x: x,
-                    y: y,
-                    size: Math.random() * 3 + 1,
-                    speedX: Math.random() * 6 - 3,
-                    speedY: Math.random() * 6 - 3,
-                    color: color,
-                    life: 30
-                });
-            }
-        }
-
-        // === ОБНОВЛЕНИЕ ЧАСТИЦ ===
-        function updateParticles() {
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.speedX;
-                p.y += p.speedY;
-                p.life--;
-                
-                if (p.life <= 0) {
-                    particles.splice(i, 1);
-                }
-            }
-        }
-
-        // === ОТРИСОВКА ЧАСТИЦ ===
-        function drawParticles() {
-            particles.forEach(p => {
-                ctx.globalAlpha = p.life / 30;
-                ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-            });
-            ctx.globalAlpha = 1;
-        }
-
-        // === ОТРИСОВКА РОБОТА-ПТИЦЫ ===
+        // === ОТРИСОВКА ПТИЦЫ ===
         function drawBird() {
             ctx.save();
             ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
             
-            // Плавное вращение
             let targetRotation = Math.max(-0.7, Math.min(0.5, bird.velocity * config.rotationSpeed));
             bird.rotation += (targetRotation - bird.rotation) * 0.1;
             ctx.rotate(bird.rotation);
             
-            // Корпус робота (основной)
-            ctx.fillStyle = '#2a2a2a';
+            // Тело птицы
+            ctx.fillStyle = '#00ffea';
             ctx.fillRect(-bird.width / 2, -bird.height / 2, bird.width, bird.height);
             
-            // Киберимпланты/светящиеся элементы
-            ctx.fillStyle = colors.primary;
+            // Детали
+            ctx.fillStyle = '#000';
             ctx.fillRect(-bird.width / 2 + 5, -bird.height / 2 + 5, 4, bird.height - 10);
             ctx.fillRect(bird.width / 2 - 9, -bird.height / 2 + 5, 4, bird.height - 10);
             
-            // "Глаз" сенсора
-            ctx.fillStyle = colors.secondary;
+            ctx.fillStyle = '#ff00ff';
             ctx.beginPath();
             ctx.arc(bird.width / 4, -bird.height / 6, 6, 0, Math.PI * 2);
             ctx.fill();
             
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(bird.width / 4 + 1, -bird.height / 6 - 1, 2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Реактивные двигатели
-            if (bird.thrusters || bird.velocity > 0) {
-                const thrustSize = Math.abs(bird.velocity) * 0.5 + 5;
-                ctx.fillStyle = '#ff0000';
-                ctx.beginPath();
-                ctx.arc(-bird.width / 2, bird.height / 4, thrustSize, 0, Math.PI * 2);
-                ctx.fill();
-                
-                createParticles(-bird.width / 2, bird.height / 4, '#ff4400', 2);
-            }
-            
             ctx.restore();
         }
 
-        // === ОТРИСОВКА ЛАЗЕРНЫХ БАРЬЕРОВ ===
+        // === ОТРИСОВКА БАРЬЕРОВ ===
         function drawPipes() {
+            ctx.fillStyle = '#00ffea';
+            
             pipes.forEach(pipe => {
-                // Основной барьер
-                const gradient = ctx.createLinearGradient(pipe.x, pipe.y, pipe.x + pipe.width, pipe.y + pipe.height);
-                gradient.addColorStop(0, '#00ffea');
-                gradient.addColorStop(0.5, '#ffffff');
-                gradient.addColorStop(1, '#00ffea');
-                
-                ctx.fillStyle = gradient;
                 ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
                 
-                // Лазерная сетка внутри барьера
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.lineWidth = 1;
-                
-                // Вертикальные линии
-                for (let i = pipe.x + 5; i < pipe.x + pipe.width; i += 10) {
-                    ctx.beginPath();
-                    ctx.moveTo(i, pipe.y);
-                    ctx.lineTo(i, pipe.y + pipe.height);
-                    ctx.stroke();
-                }
-                
-                // Горизонтальные линии
-                for (let i = pipe.y + 5; i < pipe.y + pipe.height; i += 10) {
-                    ctx.beginPath();
-                    ctx.moveTo(pipe.x, i);
-                    ctx.lineTo(pipe.x + pipe.width, i);
-                    ctx.stroke();
-                }
-                
-                // Энергетическое поле вокруг барьера
-                ctx.strokeStyle = colors.primary;
+                // Светящийся эффект
+                ctx.strokeStyle = '#ff00ff';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(pipe.x - 2, pipe.y - 2, pipe.width + 4, pipe.height + 4);
-                
-                // Анимация энергии
-                if (Math.sin(frames * 0.1) > 0) {
-                    ctx.strokeStyle = colors.secondary;
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(pipe.x - 1, pipe.y - 1, pipe.width + 2, pipe.height + 2);
-                }
+                ctx.strokeRect(pipe.x - 1, pipe.y - 1, pipe.width + 2, pipe.height + 2);
             });
         }
 
-        // === ОТРИСОВКА КИБЕРПАНК ФОНА ===
+        // === ОТРИСОВКА ФОНА ===
         function drawBackground() {
-            // Основной фон
-            ctx.fillStyle = colors.background;
+            // Черный фон
+            ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Сетка киберпространства
-            ctx.strokeStyle = 'rgba(0, 255, 234, 0.1)';
-            ctx.lineWidth = 1;
-            
-            // Вертикальные линии сетки
-            for (let x = 0; x < canvas.width; x += 40) {
-                const offset = (frames * 0.5) % 40;
-                ctx.beginPath();
-                ctx.moveTo(x - offset, 0);
-                ctx.lineTo(x - offset, canvas.height);
-                ctx.stroke();
-            }
-            
-            // Горизонтальные линии сетки
-            for (let y = 0; y < canvas.height; y += 40) {
-                const offset = (frames * 0.3) % 40;
-                ctx.beginPath();
-                ctx.moveTo(0, y - offset);
-                ctx.lineTo(canvas.width, y - offset);
-                ctx.stroke();
-            }
-            
-            // Плавающие точки данных
-            ctx.fillStyle = colors.primary;
-            for (let i = 0; i < 5; i++) {
-                const x = (frames * 2 + i * 50) % (canvas.width + 50) - 25;
-                const y = Math.sin(frames * 0.02 + i) * 50 + canvas.height / 2;
-                ctx.beginPath();
-                ctx.arc(x, y, 1, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
-            // Пол киберпространства
-            ctx.fillStyle = 'rgba(20, 20, 30, 0.8)';
-            ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
-            
-            // Неоновые линии на полу
-            ctx.strokeStyle = colors.primary;
-            ctx.lineWidth = 3;
-            for (let i = 0; i < canvas.width; i += 30) {
-                const pulse = Math.sin(frames * 0.05 + i * 0.1) * 0.5 + 0.5;
-                ctx.globalAlpha = pulse * 0.5;
-                ctx.beginPath();
-                ctx.moveTo(i, canvas.height - 30);
-                ctx.lineTo(i + 15, canvas.height - 15);
-                ctx.stroke();
-            }
-            ctx.globalAlpha = 1;
+            // Простой пол
+            ctx.fillStyle = '#00ffea';
+            ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
         }
 
-        // === ОБНОВЛЕНИЕ РОБОТА-ПТИЦЫ ===
+        // === ОБНОВЛЕНИЕ ПТИЦЫ ===
         function updateBird() {
             bird.velocity += config.gravity;
             
@@ -524,27 +258,14 @@
                 bird.jumpCooldown--;
             }
             
-            // Энергия восстанавливается со временем
-            if (bird.energy < 100) {
-                bird.energy += 0.2;
-                updateEnergyBar();
-            }
-            
-            // Индикаторы двигателей
-            bird.thrusters = bird.velocity < 0;
-            
-            // Столкновение с полом
-            if (bird.y + bird.height >= canvas.height - 30) {
-                bird.y = canvas.height - 30 - bird.height;
-                createParticles(bird.x, bird.y + bird.height, colors.secondary, 20);
+            if (bird.y + bird.height >= canvas.height - 20) {
+                bird.y = canvas.height - 20 - bird.height;
                 gameOver();
             }
             
-            // Столкновение с потолком
             if (bird.y <= 0) {
                 bird.y = 0;
                 bird.velocity = 0;
-                createParticles(bird.x, 0, colors.primary, 10);
             }
         }
 
@@ -557,55 +278,33 @@
                 lastPipeTime = currentTime;
             }
             
-            // Удаляем барьеры за экраном
             pipes = pipes.filter(pipe => pipe.x + pipe.width > -50);
             
-            // Двигаем барьеры
             pipes.forEach(pipe => {
                 pipe.x -= config.pipeSpeed;
                 
-                // ИСПРАВЛЕНИЕ: Добавляем очко только за пару барьеров
                 if (!pipe.passed && pipe.x + pipe.width < bird.x) {
                     pipe.passed = true;
                     
-                    // Добавляем очко только для верхнего барьера (чтобы не дублировать)
                     if (pipe.type === 'top') {
                         score++;
                         scoreElement.textContent = score;
                         
-                        // Обновляем уровень каждые 5 очков
-                        level = Math.floor(score / 5) + 1;
-                        levelElement.textContent = `УРОВЕНЬ: ${level}`;
-                        
-                        // Вибрация
                         if (navigator.vibrate) {
                             navigator.vibrate(30);
                         }
-                        
-                        // Эффект частиц
-                        createParticles(pipe.x + pipe.width, pipe.y + pipe.height / 2, colors.primary, 10);
                     }
                 }
                 
-                // ПРОВЕРКА СТОЛКНОВЕНИЯ - ЧЕТКИЕ ГРАНИЦЫ
                 if (
                     bird.x < pipe.x + pipe.width &&
                     bird.x + bird.width > pipe.x &&
                     bird.y < pipe.y + pipe.height &&
                     bird.y + bird.height > pipe.y
                 ) {
-                    createParticles(bird.x + bird.width / 2, bird.y + bird.height / 2, colors.laser, 30);
                     gameOver();
                 }
             });
-        }
-
-        // === ОБНОВЛЕНИЕ ПОЛОСЫ ЭНЕРГИИ ===
-        function updateEnergyBar() {
-            energyFill.style.width = bird.energy + '%';
-            energyFill.style.background = bird.energy > 30 ? 
-                'linear-gradient(90deg, #00ffea, #ff00ff)' : 
-                'linear-gradient(90deg, #ff0000, #ff4400)';
         }
 
         // === ИГРОВОЙ ЦИКЛ ===
@@ -617,33 +316,27 @@
             drawBackground();
             updateBird();
             updatePipes();
-            updateParticles();
             drawPipes();
             drawBird();
-            drawParticles();
             
             requestAnimationFrame(gameLoop);
         }
 
-        // === ЗАПУСК СИСТЕМЫ ===
+        // === НАЧАЛО ИГРЫ ===
         function startGame() {
             initBird();
             pipes = [];
-            particles = [];
             score = 0;
-            level = 1;
             frames = 0;
             lastPipeTime = Date.now();
             scoreElement.textContent = score;
-            levelElement.textContent = `УРОВЕНЬ: ${level}`;
             gameActive = true;
             startScreen.style.display = 'none';
             gameOverScreen.style.display = 'none';
-            updateEnergyBar();
             gameLoop();
         }
 
-        // === СИСТЕМНЫЙ СБОЙ ===
+        // === КОНЕЦ ИГРЫ ===
         function gameOver() {
             gameActive = false;
             finalScoreElement.textContent = score;
@@ -654,20 +347,17 @@
             }
         }
 
-        // === КИБЕРПАНК УПРАВЛЕНИЕ ===
-        function handleJump() {
-            if (gameActive && bird.jumpCooldown === 0 && bird.energy > 10) {
-                bird.velocity = config.jumpForce;
-                bird.jumpCooldown = 8;
-                bird.energy -= 10; // Тратим энергию на прыжок
-                updateEnergyBar();
-                createParticles(bird.x, bird.y + bird.height, colors.primary, 5);
-            }
-        }
-
-        // Обработчики событий
+        // === ОБРАБОТЧИКИ СОБЫТИЙ ===
+        // ФИКС: Добавляем обработчики правильно
         startButton.addEventListener('click', startGame);
         restartButton.addEventListener('click', startGame);
+
+        function handleJump() {
+            if (gameActive && bird.jumpCooldown === 0) {
+                bird.velocity = config.jumpForce;
+                bird.jumpCooldown = 8;
+            }
+        }
 
         canvas.addEventListener('click', handleJump);
         canvas.addEventListener('touchstart', function(e) {
@@ -684,9 +374,8 @@
 
         // === ИНИЦИАЛИЗАЦИЯ ===
         initBird();
-        updateEnergyBar();
         
-        console.log('🚀 Птичка-Очередняра: Киберпанк система активирована!');
+        console.log('Игра загружена!');
     </script>
 </body>
 </html>
