@@ -145,17 +145,17 @@
     <script>
         // === КОНФИГУРАЦИЯ ===
         const config = {
-            gravity: 0.5,        // УМЕНЬШИЛИ гравитацию для более плавного падения
-            jumpForce: -10,      // УМЕНЬШИЛИ силу прыжка для более сбалансированного геймплея
-            pipeSpeed: 2.5,      // ЧУТЬ замедлили скорость труб
-            pipeGap: 220,        // УВЕЛИЧИЛИ зазор между трубами
+            gravity: 0.5,
+            jumpForce: -10,
+            pipeSpeed: 2.5,
+            pipeGap: 220,
             pipeWidth: 80,
-            pipeInterval: 2000,  // УВЕЛИЧИЛИ интервал между трубами
+            pipeInterval: 2000,
             itemSpawnChance: 0.4,
-            easterEggClicks: 7,  // УВЕЛИЧИЛИ количество кликов для активации автопилота
-            easterEggTimeout: 1500, // УМЕНЬШИЛИ время для кликов
+            easterEggClicks: 7,
+            easterEggTimeout: 1500,
             autopilotCooldown: 1500,
-            minJumpInterval: 200 // МИНИМАЛЬНЫЙ интервал между прыжками в миллисекундах
+            minJumpInterval: 200
         };
 
         // === СИСТЕМА ЗВУКОВ И ВИБРАЦИИ ===
@@ -330,7 +330,7 @@
 
         // === ФИКСИРОВАННАЯ ЧАСТОТА ОБНОВЛЕНИЯ ===
         let lastFrameTime = 0;
-        const FIXED_TIMESTEP = 1000 / 60; // 60 FPS
+        const FIXED_TIMESTEP = 16.67; // 60 FPS
 
         // === АДАПТИВНЫЙ РАЗМЕР ===
         function resizeCanvas() {
@@ -367,7 +367,8 @@
         let clouds = [];
         let crashed = false;
         let gameOverTriggered = false;
-        let lastJumpTime = 0; // Время последнего прыжка
+        let lastJumpTime = 0;
+        let accumulator = 0; // Аккумулятор для фиксированного таймстепа
 
         // === ЦВЕТА РСХБ ===
         const colors = {
@@ -393,7 +394,7 @@
                 wingFlap: 0,
                 onGround: false,
                 squashed: false,
-                color: '#FFD200' // Исходный цвет
+                color: '#FFD200'
             };
             lastJumpTime = 0;
         }
@@ -418,12 +419,10 @@
             const now = Date.now();
             clickHistory.push(now);
             
-            // Удаляем клики старше указанного времени
             clickHistory = clickHistory.filter(time => 
                 now - time < config.easterEggTimeout
             );
             
-            // Проверяем, есть ли нужное количество кликов за указанное время
             if (clickHistory.length >= config.easterEggClicks && !autopilotActive) {
                 activateAutopilot();
             }
@@ -432,7 +431,7 @@
         function activateAutopilot() {
             autopilotActive = true;
             lastAutopilotActivation = Date.now();
-            clickHistory = []; // Сбрасываем историю кликов
+            clickHistory = [];
             
             soundSystem.play('autopilot');
             soundSystem.vibrate([100, 50, 100]);
@@ -508,8 +507,8 @@
         // === АНИМАЦИЯ КОМБАЙНА ===
         function startCombineAnimation() {
             combineAnimation.active = true;
-            combineAnimation.x = -canvas.width * 1.2; // Начинаем полностью за экраном
-            combineAnimation.y = canvas.height - 220; // ПОДНЯЛИ КОМБАЙН ВЫШЕ (было 180)
+            combineAnimation.x = -canvas.width * 1.2;
+            combineAnimation.y = canvas.height - 220;
             combineAnimation.width = canvas.width * 1.1;
             combineAnimation.height = 150;
             combineAnimation.bloodOpacity = 0;
@@ -528,12 +527,11 @@
             
             combineAnimation.x = -canvas.width * 1.2 + (canvas.width * 2.2) * progress;
             
-            // Проверяем, когда комбайн переезжает птичку
             if (!combineAnimation.birdSquashed && 
                 combineAnimation.x + combineAnimation.width * 0.7 > bird.x) {
                 combineAnimation.birdSquashed = true;
                 bird.squashed = true;
-                bird.color = '#8B0000'; // Красный цвет
+                bird.color = '#8B0000';
             }
             
             if (progress > 0.6 && combineAnimation.bloodOpacity < 1) {
@@ -554,12 +552,11 @@
             
             const c = combineAnimation;
             
-            // Рисуем комбайн с правильной конструкцией
             // Основной корпус
             ctx.fillStyle = '#8B4513';
             ctx.fillRect(c.x, c.y, c.width, c.height);
             
-            // Кабина СЗАДИ (левая часть - комбайн едет слева направо)
+            // Кабина СЗАДИ
             ctx.fillStyle = '#2F4F4F';
             ctx.fillRect(c.x + c.width * 0.1, c.y - 100, c.width * 0.3, 100);
             
@@ -568,7 +565,7 @@
             ctx.fillRect(c.x + c.width * 0.12, c.y - 90, c.width * 0.08, 40);
             ctx.fillRect(c.x + c.width * 0.22, c.y - 90, c.width * 0.08, 40);
             
-            // Фары СПЕРЕДИ (правая часть)
+            // Фары СПЕРЕДИ
             ctx.fillStyle = '#FFD700';
             ctx.beginPath();
             ctx.arc(c.x + c.width - 30, c.y + 30, 8, 0, Math.PI * 2);
@@ -577,7 +574,7 @@
             ctx.arc(c.x + c.width - 30, c.y + 60, 8, 0, Math.PI * 2);
             ctx.fill();
             
-            // Труба (на корпусе)
+            // Труба
             ctx.fillStyle = '#36454F';
             ctx.fillRect(c.x + c.width * 0.4, c.y - 120, 20, 120);
             
@@ -596,14 +593,12 @@
                 ctx.fill();
             }
             
-            // Колеса - большие и видные
+            // Колеса
             ctx.fillStyle = '#000';
             const wheelRadius = 40;
-            // Задние колеса (под кабиной)
             ctx.beginPath();
             ctx.arc(c.x + c.width * 0.2, c.y + c.height, wheelRadius, 0, Math.PI * 2);
             ctx.fill();
-            // Передние колеса
             ctx.beginPath();
             ctx.arc(c.x + c.width * 0.8, c.y + c.height, wheelRadius, 0, Math.PI * 2);
             ctx.fill();
@@ -617,29 +612,24 @@
             ctx.arc(c.x + c.width * 0.8, c.y + c.height, wheelRadius * 0.6, 0, Math.PI * 2);
             ctx.fill();
             
-            // ЖАТКИ СПЕРЕДИ (правая часть) - ИСПРАВЛЕНА ПОЗИЦИЯ И НАПРАВЛЕНИЕ ЗУБЬЕВ
+            // ЖАТКИ СПЕРЕДИ
             ctx.fillStyle = '#36454F';
             const toothCount = 12;
             const toothWidth = 12;
             const toothHeight = 50;
-            // Начинаем шипы чуть правее от корпуса комбайна
-            const toothStartX = c.x + c.width + 10; // ДОБАВИЛИ СМЕЩЕНИЕ ВПРАВО
+            const toothStartX = c.x + c.width + 10;
             
-            // Основная балка жатки (снизу, выступает вперед) - ИСПРАВЛЕНА ПОЗИЦИЯ
+            // Основная балка жатки
             ctx.fillStyle = '#556B2F';
-            // Зеленая палочка теперь начинается от корпуса комбайна
             ctx.fillRect(c.x + c.width, c.y + c.height - 15, 50, 8);
             
-            // ЗУБЬЯ ТЕПЕРЬ ИДУТ ВНИЗ ОТ ЗЕЛЕНОЙ БАЛКИ
+            // ЗУБЬЯ ВНИЗ ОТ ЗЕЛЕНОЙ БАЛКИ
             for (let i = 0; i < toothCount; i++) {
                 const toothX = toothStartX;
-                // Зубья теперь идут ВНИЗ от зеленой балки (увеличиваем Y)
                 const toothY = c.y + c.height - 7 + i * (toothHeight / toothCount);
                 
-                // Зубья жатки - горизонтальные и направлены вперед (вправо)
                 ctx.fillRect(toothX, toothY, toothWidth * 2, 4);
                 
-                // Вертикальные соединители - ТЕПЕРЬ ИДУТ ВНИЗ
                 if (i % 2 === 0) {
                     ctx.fillRect(toothX + toothWidth * 2, toothY, 4, 8);
                 }
@@ -650,7 +640,6 @@
                 ctx.fillStyle = `rgba(139, 0, 0, ${combineAnimation.bloodOpacity})`;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // Брызги крови
                 if (combineAnimation.bloodOpacity > 0.5) {
                     ctx.fillStyle = `rgba(178, 34, 34, ${combineAnimation.bloodOpacity})`;
                     for (let i = 0; i < 30; i++) {
@@ -710,35 +699,30 @@
         // === ОТРИСОВКА КУРИЦЫ ===
         function drawBird() {
             if (crashed && bird.onGround) {
-                // Рисуем птичку на земле (приплюснутую и красную, если комбайн проехал)
                 ctx.save();
                 ctx.translate(bird.x + bird.width / 2, canvas.height - 30 - (bird.height / (bird.squashed ? 3 : 1)) / 2);
                 
                 if (bird.squashed) {
-                    ctx.scale(1, 0.3); // Приплющиваем по вертикали
+                    ctx.scale(1, 0.3);
                 }
                 
                 ctx.rotate(-0.3);
                 
-                // Тело курицы
                 ctx.fillStyle = bird.color;
                 ctx.beginPath();
                 ctx.ellipse(0, 0, bird.width / 2, bird.height / 2, 0, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Крылья
                 ctx.fillStyle = bird.squashed ? '#8B0000' : '#FFA500';
                 ctx.beginPath();
                 ctx.ellipse(-bird.width / 3, 0, bird.width / 3, bird.height / 3, 0, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Голова
                 ctx.fillStyle = bird.color;
                 ctx.beginPath();
                 ctx.arc(bird.width * 0.3, -bird.height * 0.3, bird.width * 0.25, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Закрытый глаз
                 ctx.strokeStyle = colors.primary;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -746,7 +730,6 @@
                 ctx.lineTo(bird.width * 0.45, -bird.height * 0.35);
                 ctx.stroke();
                 
-                // Клюв
                 ctx.fillStyle = '#FF6B35';
                 ctx.beginPath();
                 ctx.moveTo(bird.width * 0.45, -bird.height * 0.3);
@@ -757,7 +740,6 @@
                 
                 ctx.restore();
             } else {
-                // Обычная отрисовка птички
                 ctx.save();
                 ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
                 
@@ -768,25 +750,21 @@
                 bird.wingFlap += 0.3;
                 const wingOffset = Math.sin(bird.wingFlap) * 5;
                 
-                // Тело курицы
                 ctx.fillStyle = colors.accent;
                 ctx.beginPath();
                 ctx.ellipse(0, 0, bird.width / 2, bird.height / 2, 0, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Крылья с анимацией
                 ctx.fillStyle = '#FFA500';
                 ctx.beginPath();
                 ctx.ellipse(-bird.width / 3, wingOffset, bird.width / 3, bird.height / 3, 0, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Голова
                 ctx.fillStyle = colors.accent;
                 ctx.beginPath();
                 ctx.arc(bird.width * 0.3, -bird.height * 0.3, bird.width * 0.25, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Глаз
                 ctx.fillStyle = colors.white;
                 ctx.beginPath();
                 ctx.arc(bird.width * 0.4, -bird.height * 0.35, bird.width * 0.08, 0, Math.PI * 2);
@@ -797,7 +775,6 @@
                 ctx.arc(bird.width * 0.42, -bird.height * 0.35, bird.width * 0.04, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Клюв
                 ctx.fillStyle = '#FF6B35';
                 ctx.beginPath();
                 ctx.moveTo(bird.width * 0.45, -bird.height * 0.3);
@@ -806,7 +783,6 @@
                 ctx.closePath();
                 ctx.fill();
                 
-                // Хвост
                 ctx.fillStyle = colors.accent;
                 ctx.beginPath();
                 ctx.moveTo(-bird.width * 0.4, 0);
@@ -822,11 +798,9 @@
         // === ОТРИСОВКА КОЛОСКОВ ===
         function drawPipes() {
             pipes.forEach(pipe => {
-                // Основной фон колоска
                 ctx.fillStyle = '#8FBC8F';
                 ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
                 
-                // Стебли
                 ctx.strokeStyle = '#556B2F';
                 ctx.lineWidth = 3;
                 const stemCount = Math.floor(pipe.width / 12);
@@ -840,7 +814,6 @@
                     ctx.lineTo(stemX, pipe.isTop ? pipe.y : pipe.y + pipe.height);
                     ctx.stroke();
                     
-                    // Колосья
                     ctx.fillStyle = '#DAA520';
                     if (pipe.isTop) {
                         ctx.beginPath();
@@ -926,11 +899,11 @@
             }
         }
 
-        // === ОБНОВЛЕНИЕ ИГРЫ (ИСПОЛЬЗУЕМ ФИКСИРОВАННЫЙ ТАЙМСТЕП) ===
-        function updateGame(deltaTime) {
+        // === ОБНОВЛЕНИЕ ИГРЫ (ФИКСИРОВАННЫЙ ТАЙМСТЕП) ===
+        function updateGame() {
             if (crashed) {
                 if (!bird.onGround) {
-                    bird.velocity += config.gravity * (deltaTime / 16.67); // Нормализуем к 60 FPS
+                    bird.velocity += config.gravity;
                     bird.y += bird.velocity;
                     
                     if (bird.y + bird.height > canvas.height - 30) {
@@ -944,14 +917,15 @@
                 return;
             }
             
-            // Сбрасываем скорость птички каждый кадр, если игра активна
+            // Обычное обновление игры
             if (gameActive) {
-                bird.velocity += config.gravity * (deltaTime / 16.67); // Нормализуем к 60 FPS
+                bird.velocity += config.gravity;
                 bird.y += bird.velocity;
             }
             
             updateClouds();
             
+            // Проверка границ
             if (bird.y < 0) {
                 bird.y = 0;
                 bird.velocity = 0;
@@ -963,17 +937,19 @@
                 return;
             }
             
+            // Создание новых труб
             if (Date.now() - lastPipeTime > config.pipeInterval) {
                 createPipe();
                 lastPipeTime = Date.now();
             }
             
+            // Обновление труб
             pipes = pipes.filter(pipe => pipe.x + pipe.width > -100);
             
             const passedPairs = new Set();
             
             pipes.forEach(pipe => {
-                pipe.x -= config.pipeSpeed * (deltaTime / 16.67); // Нормализуем скорость
+                pipe.x -= config.pipeSpeed;
                 
                 if (!pipe.passed && pipe.x + pipe.width < bird.x) {
                     pipe.passed = true;
@@ -993,10 +969,11 @@
                 }
             });
             
+            // Обновление зерен
             items = items.filter(item => !item.collected && item.x > -50);
             
             items.forEach(item => {
-                item.x -= config.pipeSpeed * (deltaTime / 16.67); // Нормализуем скорость
+                item.x -= config.pipeSpeed;
                 
                 if (!item.collected && checkCollision(bird, item)) {
                     item.collected = true;
@@ -1021,21 +998,29 @@
                    obj1.y + obj1.height > obj2.y;
         }
 
-        // === ИГРОВОЙ ЦИКЛ С ФИКСИРОВАННЫМ ТАЙМСТЕПОМ ===
-        function gameLoop(timestamp) {
-            if (!gameActive && !combineAnimation.active) {
-                requestAnimationFrame(gameLoop);
-                return;
+        // === ИГРОВОЙ ЦИКЛ ===
+        function gameLoop() {
+            if (!gameActive && !combineAnimation.active) return;
+            
+            // Используем фиксированный таймстеп для стабильной физики
+            const now = Date.now();
+            if (!lastFrameTime) lastFrameTime = now;
+            let deltaTime = now - lastFrameTime;
+            lastFrameTime = now;
+            
+            // Ограничиваем deltaTime, чтобы избежать больших скачков
+            if (deltaTime > 100) deltaTime = 100;
+            
+            accumulator += deltaTime;
+            
+            // Обновляем логику игры с фиксированным шагом
+            while (accumulator >= FIXED_TIMESTEP) {
+                updateGame();
+                accumulator -= FIXED_TIMESTEP;
             }
             
-            // Вычисляем разницу во времени с последнего кадра
-            const deltaTime = timestamp - lastFrameTime || 0;
-            lastFrameTime = timestamp;
-            
-            frames++;
-            
+            // Отрисовка
             drawBackground();
-            updateGame(deltaTime);
             drawPipes();
             drawItems();
             drawBird();
@@ -1063,6 +1048,7 @@
             clickHistory = [];
             combineAnimation.active = false;
             lastFrameTime = 0;
+            accumulator = 0;
             
             // Полностью переинициализируем игру
             initBird();
@@ -1073,18 +1059,19 @@
             startScreen.style.display = 'none';
             gameOverScreen.style.display = 'none';
             
-            // ДАЕМ ВРЕМЯ ДЛЯ ПЕРЕИНИЦИАЛИЗАЦИИ ПЕРЕД ЗАПУСКОМ
+            // Даем время для переинициализации
             setTimeout(() => {
                 gameActive = true;
                 lastPipeTime = Date.now();
                 lastFrameTime = 0;
+                accumulator = 0;
                 
                 if (!soundSystem.audioContext) {
                     soundSystem.init();
                 }
                 
-                requestAnimationFrame(gameLoop);
-            }, 100); // Небольшая задержка для стабильности
+                gameLoop();
+            }, 100);
         }
 
         // === НАЧАЛО ИГРЫ ===
@@ -1108,7 +1095,6 @@
             
             const now = Date.now();
             
-            // Проверяем минимальный интервал между прыжками
             if (now - lastJumpTime < config.minJumpInterval) {
                 return;
             }
