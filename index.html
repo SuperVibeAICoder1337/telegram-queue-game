@@ -608,7 +608,7 @@
             ctx.arc(c.x + c.width * 0.8, c.y + c.height, wheelRadius * 0.6, 0, Math.PI * 2);
             ctx.fill();
             
-            // ЖАТКИ СПЕРЕДИ (правая часть) - ИСПРАВЛЕНА ПОЗИЦИЯ
+            // ЖАТКИ СПЕРЕДИ (правая часть) - ИСПРАВЛЕНА ПОЗИЦИЯ И НАПРАВЛЕНИЕ ЗУБЬЕВ
             ctx.fillStyle = '#36454F';
             const toothCount = 12;
             const toothWidth = 12;
@@ -616,23 +616,25 @@
             // Начинаем шипы чуть правее от корпуса комбайна
             const toothStartX = c.x + c.width + 10; // ДОБАВИЛИ СМЕЩЕНИЕ ВПРАВО
             
-            for (let i = 0; i < toothCount; i++) {
-                const toothX = toothStartX;
-                const toothY = c.y + c.height - 10 - i * (toothHeight / toothCount);
-                
-                // Зубья жатки - горизонтальные и направлены вперед (вправо)
-                ctx.fillRect(toothX, toothY, toothWidth * 2, 4);
-                
-                // Вертикальные соединители
-                if (i % 2 === 0) {
-                    ctx.fillRect(toothX + toothWidth * 2, toothY, 4, 8);
-                }
-            }
-            
             // Основная балка жатки (снизу, выступает вперед) - ИСПРАВЛЕНА ПОЗИЦИЯ
             ctx.fillStyle = '#556B2F';
             // Зеленая палочка теперь начинается от корпуса комбайна
             ctx.fillRect(c.x + c.width, c.y + c.height - 15, 50, 8);
+            
+            // ЗУБЬЯ ТЕПЕРЬ ИДУТ ВНИЗ ОТ ЗЕЛЕНОЙ БАЛКИ
+            for (let i = 0; i < toothCount; i++) {
+                const toothX = toothStartX;
+                // Зубья теперь идут ВНИЗ от зеленой балки (увеличиваем Y)
+                const toothY = c.y + c.height - 7 + i * (toothHeight / toothCount);
+                
+                // Зубья жатки - горизонтальные и направлены вперед (вправо)
+                ctx.fillRect(toothX, toothY, toothWidth * 2, 4);
+                
+                // Вертикальные соединители - ТЕПЕРЬ ИДУТ ВНИЗ
+                if (i % 2 === 0) {
+                    ctx.fillRect(toothX + toothWidth * 2, toothY, 4, 8);
+                }
+            }
             
             // Заливка кровью
             if (combineAnimation.bloodOpacity > 0) {
