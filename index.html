@@ -145,16 +145,17 @@
     <script>
         // === КОНФИГУРАЦИЯ ===
         const config = {
-            gravity: 0.6,
-            jumpForce: -12,
-            pipeSpeed: 3,
-            pipeGap: 200,
+            gravity: 0.5,        // УМЕНЬШИЛИ гравитацию для более плавного падения
+            jumpForce: -10,      // УМЕНЬШИЛИ силу прыжка для более сбалансированного геймплея
+            pipeSpeed: 2.5,      // ЧУТЬ замедлили скорость труб
+            pipeGap: 220,        // УВЕЛИЧИЛИ зазор между трубами
             pipeWidth: 80,
-            pipeInterval: 1800,
+            pipeInterval: 2000,  // УВЕЛИЧИЛИ интервал между трубами
             itemSpawnChance: 0.4,
-            easterEggClicks: 5,
-            easterEggTimeout: 2000,
-            autopilotCooldown: 1000
+            easterEggClicks: 7,  // УВЕЛИЧИЛИ количество кликов для активации автопилота
+            easterEggTimeout: 1500, // УМЕНЬШИЛИ время для кликов
+            autopilotCooldown: 1500,
+            minJumpInterval: 200 // МИНИМАЛЬНЫЙ интервал между прыжками в миллисекундах
         };
 
         // === СИСТЕМА ЗВУКОВ И ВИБРАЦИИ ===
@@ -327,6 +328,10 @@
             birdSquashed: false
         };
 
+        // === ФИКСИРОВАННАЯ ЧАСТОТА ОБНОВЛЕНИЯ ===
+        let lastFrameTime = 0;
+        const FIXED_TIMESTEP = 1000 / 60; // 60 FPS
+
         // === АДАПТИВНЫЙ РАЗМЕР ===
         function resizeCanvas() {
             const container = document.getElementById('game-container');
@@ -362,8 +367,9 @@
         let clouds = [];
         let crashed = false;
         let gameOverTriggered = false;
+        let lastJumpTime = 0; // Время последнего прыжка
 
-        // === ЦВЕТА ===
+        // === ЦВЕТА РСХБ ===
         const colors = {
             primary: '#0B6E4F',
             accent: '#FFD200',
@@ -389,6 +395,7 @@
                 squashed: false,
                 color: '#FFD200' // Исходный цвет
             };
+            lastJumpTime = 0;
         }
 
         // === ИНИЦИАЛИЗАЦИЯ ОБЛАКОВ ===
@@ -411,10 +418,12 @@
             const now = Date.now();
             clickHistory.push(now);
             
+            // Удаляем клики старше указанного времени
             clickHistory = clickHistory.filter(time => 
                 now - time < config.easterEggTimeout
             );
             
+            // Проверяем, есть ли нужное количество кликов за указанное время
             if (clickHistory.length >= config.easterEggClicks && !autopilotActive) {
                 activateAutopilot();
             }
@@ -423,7 +432,7 @@
         function activateAutopilot() {
             autopilotActive = true;
             lastAutopilotActivation = Date.now();
-            clickHistory = [];
+            clickHistory = []; // Сбрасываем историю кликов
             
             soundSystem.play('autopilot');
             soundSystem.vibrate([100, 50, 100]);
@@ -917,11 +926,11 @@
             }
         }
 
-        // === ОБНОВЛЕНИЕ ИГРЫ ===
-        function updateGame() {
+        // === ОБНОВЛЕНИЕ ИГРЫ (ИСПОЛЬЗУЕМ ФИКСИРОВАННЫЙ ТАЙМСТЕП) ===
+        function updateGame(deltaTime) {
             if (crashed) {
                 if (!bird.onGround) {
-                    bird.velocity += config.gravity;
+                    bird.velocity += config.gravity * (deltaTime / 16.67); // Нормализуем к 60 FPS
                     bird.y += bird.velocity;
                     
                     if (bird.y + bird.height > canvas.height - 30) {
@@ -937,12 +946,8 @@
             
             // Сбрасываем скорость птички каждый кадр, если игра активна
             if (gameActive) {
-                bird.velocity += config.gravity;
+                bird.velocity += config.gravity * (deltaTime / 16.67); // Нормализуем к 60 FPS
                 bird.y += bird.velocity;
-            }
-            
-            if (bird.jumpCooldown > 0) {
-                bird.jumpCooldown--;
             }
             
             updateClouds();
@@ -968,7 +973,7 @@
             const passedPairs = new Set();
             
             pipes.forEach(pipe => {
-                pipe.x -= config.pipeSpeed;
+                pipe.x -= config.pipeSpeed * (deltaTime / 16.67); // Нормализуем скорость
                 
                 if (!pipe.passed && pipe.x + pipe.width < bird.x) {
                     pipe.passed = true;
@@ -991,7 +996,7 @@
             items = items.filter(item => !item.collected && item.x > -50);
             
             items.forEach(item => {
-                item.x -= config.pipeSpeed;
+                item.x -= config.pipeSpeed * (deltaTime / 16.67); // Нормализуем скорость
                 
                 if (!item.collected && checkCollision(bird, item)) {
                     item.collected = true;
@@ -1016,14 +1021,21 @@
                    obj1.y + obj1.height > obj2.y;
         }
 
-        // === ИГРОВОЙ ЦИКЛ ===
-        function gameLoop() {
-            if (!gameActive && !combineAnimation.active) return;
+        // === ИГРОВОЙ ЦИКЛ С ФИКСИРОВАННЫМ ТАЙМСТЕПОМ ===
+        function gameLoop(timestamp) {
+            if (!gameActive && !combineAnimation.active) {
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+            
+            // Вычисляем разницу во времени с последнего кадра
+            const deltaTime = timestamp - lastFrameTime || 0;
+            lastFrameTime = timestamp;
             
             frames++;
             
             drawBackground();
-            updateGame();
+            updateGame(deltaTime);
             drawPipes();
             drawItems();
             drawBird();
@@ -1050,6 +1062,7 @@
             autopilotActive = false;
             clickHistory = [];
             combineAnimation.active = false;
+            lastFrameTime = 0;
             
             // Полностью переинициализируем игру
             initBird();
@@ -1064,12 +1077,13 @@
             setTimeout(() => {
                 gameActive = true;
                 lastPipeTime = Date.now();
+                lastFrameTime = 0;
                 
                 if (!soundSystem.audioContext) {
                     soundSystem.init();
                 }
                 
-                gameLoop();
+                requestAnimationFrame(gameLoop);
             }, 100); // Небольшая задержка для стабильности
         }
 
@@ -1090,13 +1104,20 @@
         restartButton.addEventListener('click', startGame);
 
         function handleJump() {
-            if (gameActive && bird.jumpCooldown === 0 && !crashed) {
-                bird.velocity = config.jumpForce;
-                bird.jumpCooldown = 10;
-                
-                soundSystem.play('jump');
-                soundSystem.vibrate(40);
+            if (!gameActive || crashed) return;
+            
+            const now = Date.now();
+            
+            // Проверяем минимальный интервал между прыжками
+            if (now - lastJumpTime < config.minJumpInterval) {
+                return;
             }
+            
+            bird.velocity = config.jumpForce;
+            lastJumpTime = now;
+            
+            soundSystem.play('jump');
+            soundSystem.vibrate(40);
         }
 
         function handleInteraction() {
@@ -1131,7 +1152,7 @@
             soundSystem.init();
         });
 
-        console.log('🐔 Птичка-Очередняра готова к работе! Автопилот активируется 5 быстрыми кликами.');
+        console.log('🐔 Птичка-Очередняра готова к работе! Автопилот активируется 7 быстрыми кликами за 1.5 секунды.');
     </script>
 </body>
 </html>
